@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DNS Benchmarker</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-void:    #050508;
+      --bg-base:    #0a0a0f;
+      --bg-surface: #0f0f17;
+      --bg-card:    #13131e;
+      --bg-hover:   #1a1a28;
+      --bg-input:   #0d0d16;
+
+      --border:     rgba(255,255,255,0.07);
+      --border-mid: rgba(255,255,255,0.12);
+      --border-hi:  rgba(255,255,255,0.18);
+
+      --text-primary:   #f0f0ff;
+      --text-secondary: #8888aa;
+      --text-muted:     #55556a;
+      --text-dim:       #3a3a50;
+
+      --blue:      #4f7fff;
+      --blue-glow: rgba(79,127,255,0.18);
+      --blue-dim:  rgba(79,127,255,0.08);
+
+      --emerald:      #10d48a;
+      --emerald-glow: rgba(16,212,138,0.15);
+      --emerald-dim:  rgba(16,212,138,0.06);
+
+      --amber:      #f59e0b;
+      --amber-glow: rgba(245,158,11,0.15);
+      --amber-dim:  rgba(245,158,11,0.06);
+
+      --rose:      #f43f5e;
+      --rose-glow: rgba(244,63,94,0.15);
+      --rose-dim:  rgba(244,63,94,0.06);
+
+      --violet:      #8b5cf6;
+      --violet-glow: rgba(139,92,246,0.12);
+
+      --radius-sm: 6px;
+      --radius:    10px;
+      --radius-lg: 16px;
+      --radius-xl: 20px;
+
+      --font-mono: 'JetBrains Mono', monospace;
+      --font-sans: 'Inter', system-ui, sans-serif;
+    }
+
+    html, body { height: 100%; }
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg-void);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    #root { min-height: 100vh; }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
+
+    /* ── Background Nebula ── */
+    .nebula {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background:
+        radial-gradient(ellipse 60% 50% at 15% 20%, rgba(79,127,255,0.07) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 60% at 85% 80%, rgba(139,92,246,0.06) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 40% at 50% 50%, rgba(16,212,138,0.03) 0%, transparent 70%);
+    }
+
+    /* ── Grid overlay ── */
+    .grid-bg {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%);
+    }
+
+    .content { position: relative; z-index: 1; }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 20px; border-radius: var(--radius);
+      font-family: var(--font-sans); font-size: 13px; font-weight: 600;
+      cursor: pointer; border: none; transition: all 0.18s ease;
+      letter-spacing: 0.01em; white-space: nowrap; text-decoration: none;
+    }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-primary {
+      background: var(--blue); color: #fff;
+      box-shadow: 0 0 0 0 var(--blue-glow), 0 1px 3px rgba(0,0,0,0.4);
+    }
+    .btn-primary:not(:disabled):hover {
+      background: #6090ff;
+      box-shadow: 0 0 24px var(--blue-glow), 0 1px 3px rgba(0,0,0,0.4);
+      transform: translateY(-1px);
+    }
+    .btn-ghost {
+      background: transparent; color: var(--text-secondary);
+      border: 1px solid var(--border-mid);
+    }
+    .btn-ghost:not(:disabled):hover {
+      background: var(--bg-hover); color: var(--text-primary);
+      border-color: var(--border-hi);
+    }
+    .btn-danger {
+      background: transparent; color: var(--rose);
+      border: 1px solid rgba(244,63,94,0.25);
+    }
+    .btn-danger:not(:disabled):hover {
+      background: var(--rose-dim);
+      border-color: rgba(244,63,94,0.4);
+      box-shadow: 0 0 16px var(--rose-glow);
+    }
+    .btn-emerald {
+      background: var(--emerald); color: #021a0e; font-weight: 700;
+      box-shadow: 0 0 0 0 var(--emerald-glow);
+    }
+    .btn-emerald:not(:disabled):hover {
+      background: #12e895;
+      box-shadow: 0 0 20px var(--emerald-glow);
+      transform: translateY(-1px);
+    }
+    .btn-sm { padding: 6px 14px; font-size: 12px; }
+    .btn-lg { padding: 14px 28px; font-size: 14px; }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); overflow: hidden;
+    }
+    .card-glass {
+      background: rgba(19,19,30,0.7); backdrop-filter: blur(20px);
+      border: 1px solid var(--border-mid); border-radius: var(--radius-xl);
+    }
+
+    /* ── Badge ── */
+    .badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 8px; border-radius: 4px;
+      font-size: 11px; font-weight: 600; font-family: var(--font-mono);
+      letter-spacing: 0.05em;
+    }
+    .badge-bypass  { background: var(--emerald-dim); color: var(--emerald); border: 1px solid rgba(16,212,138,0.2); }
+    .badge-blocked { background: var(--rose-dim);    color: var(--rose);    border: 1px solid rgba(244,63,94,0.2); }
+    .badge-sanctioned { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(245,158,11,0.2); }
+    .badge-filtered   { background: rgba(139,92,246,0.08); color: #a78bfa; border: 1px solid rgba(139,92,246,0.2); }
+    .badge-dns_failed { background: rgba(255,255,255,0.04); color: var(--text-muted); border: 1px solid var(--border); }
+    .badge-probe_error { background: rgba(245,158,11,0.06); color: #fbbf24; border: 1px solid rgba(245,158,11,0.2); }
+
+    /* ── Input ── */
+    .input {
+      background: var(--bg-input); border: 1px solid var(--border-mid);
+      color: var(--text-primary); border-radius: var(--radius);
+      padding: 9px 12px; font-family: var(--font-mono); font-size: 13px;
+      width: 100%; outline: none; transition: border-color 0.15s;
+    }
+    .input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-dim); }
+    .input::placeholder { color: var(--text-dim); }
+
+    /* ── Tier cards ── */
+    .tier-card-a {
+      border: 1px solid rgba(16,212,138,0.25);
+      background: linear-gradient(135deg, rgba(16,212,138,0.05) 0%, var(--bg-card) 60%);
+    }
+    .tier-card-b {
+      border: 1px solid rgba(245,158,11,0.22);
+      background: linear-gradient(135deg, rgba(245,158,11,0.05) 0%, var(--bg-card) 60%);
+    }
+    .tier-card-f {
+      border: 1px solid rgba(244,63,94,0.18);
+      background: linear-gradient(135deg, rgba(244,63,94,0.04) 0%, var(--bg-card) 60%);
+    }
+
+    /* ── Progress bar ── */
+    .progress-track {
+      height: 3px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%; border-radius: 2px;
+      background: linear-gradient(90deg, var(--blue), #7eb3ff);
+      transition: width 0.3s ease;
+      box-shadow: 0 0 8px rgba(79,127,255,0.5);
+    }
+
+    /* ── Skeleton ── */
+    @keyframes shimmer {
+      0%   { background-position: -600px 0; }
+      100% { background-position: 600px 0; }
+    }
+    .skeleton {
+      background: linear-gradient(90deg,
+        rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 100%);
+      background-size: 600px 100%;
+      animation: shimmer 1.6s infinite linear;
+      border-radius: var(--radius-sm);
+    }
+
+    /* ── Pulse dot ── */
+    @keyframes pulse-ring {
+      0%   { transform: scale(1); opacity: 0.8; }
+      100% { transform: scale(2.2); opacity: 0; }
+    }
+    .pulse-dot {
+      position: relative; display: inline-flex;
+      width: 8px; height: 8px; border-radius: 50%;
+    }
+    .pulse-dot::before {
+      content: ''; position: absolute; inset: 0; border-radius: 50%;
+      background: inherit; animation: pulse-ring 1.4s infinite ease-out;
+    }
+
+    /* ── Glow text ── */
+    .glow-blue { color: var(--blue); text-shadow: 0 0 20px rgba(79,127,255,0.4); }
+    .glow-emerald { color: var(--emerald); text-shadow: 0 0 20px rgba(16,212,138,0.3); }
+
+    /* ── Toast ── */
+    @keyframes slide-up {
+      from { transform: translateY(20px); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+    .toast {
+      position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+      background: var(--bg-card); border: 1px solid var(--border-mid);
+      border-radius: var(--radius); padding: 14px 18px;
+      display: flex; align-items: center; gap: 10px;
+      font-size: 13px; max-width: 360px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      animation: slide-up 0.25s ease;
+    }
+    .toast-success { border-left: 3px solid var(--emerald); }
+    .toast-error   { border-left: 3px solid var(--rose); }
+    .toast-info    { border-left: 3px solid var(--blue); }
+
+    /* ── Domain row ── */
+    .domain-row {
+      display: grid; grid-template-columns: 1fr auto auto auto;
+      align-items: center; gap: 10px;
+      padding: 7px 0; border-bottom: 1px solid var(--border);
+      font-size: 12px;
+    }
+    .domain-row:last-child { border-bottom: none; }
+
+    /* ── Tier label ── */
+    .tier-label {
+      font-family: var(--font-mono); font-weight: 700;
+      font-size: 22px; letter-spacing: -0.02em; line-height: 1;
+    }
+    .tier-a { color: var(--emerald); }
+    .tier-b { color: var(--amber); }
+    .tier-f { color: var(--rose); }
+
+    /* ── Stat box ── */
+    .stat-box {
+      background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 8px 12px; text-align: center;
+    }
+
+    /* ── Separator ── */
+    .sep { height: 1px; background: var(--border); }
+
+    /* ── Section label ── */
+    .section-eyebrow {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--text-muted);
+    }
+
+    /* ── Monospace text ── */
+    .mono { font-family: var(--font-mono); }
+
+    /* ── Animations ── */
+    @keyframes fade-in {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in { animation: fade-in 0.4s ease forwards; }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .spin { animation: spin 0.8s linear infinite; }
+
+    /* ── Live feed item ── */
+    @keyframes pop-in {
+      from { opacity: 0; transform: scale(0.95); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    .feed-item { animation: pop-in 0.15s ease; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useCallback, useRef, useMemo } = React;
+
+const API = "http://localhost:8765";
+
+// ── Utilities ──────────────────────────────────────────────────────────────
+const statusMeta = {
+  BYPASS:      { label: "BYPASS",     cls: "badge-bypass",     icon: "✓",  color: "#10d48a" },
+  SANCTIONED:  { label: "SANCTIONED", cls: "badge-sanctioned", icon: "⊘",  color: "#f59e0b" },
+  BLOCKED:     { label: "BLOCKED",    cls: "badge-blocked",    icon: "✕",  color: "#f43f5e" },
+  FILTERED:    { label: "FILTERED",   cls: "badge-filtered",   icon: "🔒", color: "#8b5cf6" },
+  DNS_FAILED:  { label: "DNS FAIL",   cls: "badge-dns_failed", icon: "–",  color: "#55556a" },
+  PROBE_ERROR: { label: "ERR",        cls: "badge-probe_error",icon: "⚠",  color: "#fbbf24" },
+};
+
+function StatusBadge({ status }) {
+  const m = statusMeta[status] || statusMeta.PROBE_ERROR;
+  return <span className={`badge ${m.cls}`}>{m.icon} {m.label}</span>;
+}
+
+function Spinner({ size = 16 }) {
+  return (
+    <svg className="spin" width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2.5" strokeDasharray="40 20"
+              strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function LatencyPill({ ms, dim }) {
+  if (ms == null) return <span style={{ color: "#3a3a50", fontFamily: "var(--font-mono)", fontSize: 11 }}>—</span>;
+  const color = ms < 100 ? "#10d48a" : ms < 300 ? "#f59e0b" : "#f43f5e";
+  return (
+    <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: dim ? "#55556a" : color }}>
+      {Math.round(ms)}ms
+    </span>
+  );
+}
+
+// ── Toast System ───────────────────────────────────────────────────────────
+function Toast({ toast, onClose }) {
+  useEffect(() => {
+    const t = setTimeout(onClose, 4500);
+    return () => clearTimeout(t);
+  }, []);
+  const cls = toast.type === "success" ? "toast-success" : toast.type === "error" ? "toast-error" : "toast-info";
+  const icon = toast.type === "success" ? "✓" : toast.type === "error" ? "✕" : "ℹ";
+  const color = toast.type === "success" ? "var(--emerald)" : toast.type === "error" ? "var(--rose)" : "var(--blue)";
+  return (
+    <div className={`toast ${cls}`}>
+      <span style={{ color, fontWeight: 700, fontSize: 15 }}>{icon}</span>
+      <span style={{ color: "var(--text-primary)" }}>{toast.message}</span>
+      <button onClick={onClose} style={{ marginLeft: "auto", background: "none", border: "none",
+        color: "var(--text-muted)", cursor: "pointer", fontSize: 16, lineHeight: 1 }}>×</button>
+    </div>
+  );
+}
+
+// ── Landing / Launch Screen ────────────────────────────────────────────────
+function LandingScreen({ config, onStartBenchmark, onReset, isResetting }) {
+  const [customServers, setCustomServers] = useState([]);
+  const [customInput, setCustomInput] = useState({ name: "", ip: "", secondary_ip: "" });
+  const [addingCustom, setAddingCustom] = useState(false);
+  const [ipError, setIpError] = useState("");
+
+  function validateIP(ip) {
+    return /^(\d{1,3}\.){3}\d{1,3}$/.test(ip.trim());
+  }
+
+  function addCustomServer() {
+    if (!validateIP(customInput.ip)) { setIpError("Invalid IP address"); return; }
+    if (customInput.secondary_ip && !validateIP(customInput.secondary_ip)) {
+      setIpError("Invalid secondary IP"); return;
+    }
+    setCustomServers(prev => [...prev, {
+      name: customInput.name || `Custom-${customInput.ip}`,
+      ip: customInput.ip.trim(),
+      secondary_ip: customInput.secondary_ip.trim() || null,
+    }]);
+    setCustomInput({ name: "", ip: "", secondary_ip: "" });
+    setIpError("");
+    setAddingCustom(false);
+  }
+
+  const totalServers = (config?.dns_servers?.length || 6) + customServers.length;
+
+  return (
+    <div className="content" style={{ minHeight: "100vh", display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center", padding: "32px 16px" }}>
+
+      {/* Logo / Hero */}
+      <div style={{ textAlign: "center", marginBottom: 52 }}>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 10, background: "var(--blue-dim)",
+            border: "1px solid rgba(79,127,255,0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" strokeWidth="2" strokeLinecap="round">
+              <circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20"/>
+              <path d="M2 12h20"/><path d="M12 2c2 3 4 7 4 10s-2 7-4 10"/>
+            </svg>
+          </div>
+          <div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", letterSpacing: "0.14em",
+              textTransform: "uppercase", fontWeight: 600, marginBottom: 1 }}>
+              Network Intelligence
+            </div>
+            <div style={{ fontSize: 24, fontWeight: 700, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>
+              DNS Benchmarker
+            </div>
+          </div>
+        </div>
+        <p style={{ color: "var(--text-secondary)", fontSize: 14, maxWidth: 420, lineHeight: 1.7 }}>
+          Audit DNS resolvers for bypass capability across sanctioned domains.
+          Tier-ranked results with one-click system DNS application.
+        </p>
+      </div>
+
+      {/* Main card */}
+      <div className="card-glass" style={{ width: "100%", maxWidth: 560, padding: 32 }}>
+
+        {/* Stats row */}
+        {config && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 28 }}>
+            {[
+              { label: "DNS Servers", value: totalServers, accent: "var(--blue)" },
+              { label: "Target Domains", value: config.dns_servers ? config.target_domains.length : 7, accent: "var(--violet)" },
+              { label: "Total Probes", value: totalServers * (config.target_domains?.length || 7), accent: "var(--emerald)" },
+            ].map(s => (
+              <div key={s.label} className="stat-box">
+                <div style={{ fontSize: 22, fontWeight: 700, color: s.accent, fontFamily: "var(--font-mono)" }}>
+                  {s.value}
+                </div>
+                <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Custom server input */}
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+            <span className="section-eyebrow">Custom DNS Servers</span>
+            <button className="btn btn-ghost btn-sm"
+              onClick={() => setAddingCustom(!addingCustom)}>
+              {addingCustom ? "Cancel" : "+ Add Server"}
+            </button>
+          </div>
+
+          {addingCustom && (
+            <div className="fade-in" style={{ background: "var(--bg-surface)", border: "1px solid var(--border-mid)",
+              borderRadius: "var(--radius)", padding: 16, marginBottom: 12 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr 1.4fr", gap: 8, marginBottom: 10 }}>
+                <input className="input" placeholder="Name (optional)" value={customInput.name}
+                  onChange={e => setCustomInput(p => ({ ...p, name: e.target.value }))} />
+                <input className="input" placeholder="Primary IP *" value={customInput.ip}
+                  onChange={e => { setIpError(""); setCustomInput(p => ({ ...p, ip: e.target.value })); }} />
+                <input className="input" placeholder="Secondary IP" value={customInput.secondary_ip}
+                  onChange={e => setCustomInput(p => ({ ...p, secondary_ip: e.target.value }))} />
+              </div>
+              {ipError && <div style={{ color: "var(--rose)", fontSize: 12, marginBottom: 8 }}>⚠ {ipError}</div>}
+              <button className="btn btn-primary btn-sm" onClick={addCustomServer}>Add to Benchmark</button>
+            </div>
+          )}
+
+          {customServers.length > 0 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {customServers.map((s, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 12px",
+                  background: "var(--bg-input)", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)" }}>
+                  <div style={{ flex: 1 }}>
+                    <span style={{ color: "var(--text-primary)", fontSize: 13, fontWeight: 500 }}>{s.name}</span>
+                    <span className="mono" style={{ color: "var(--text-muted)", fontSize: 11, marginLeft: 10 }}>
+                      {s.ip}{s.secondary_ip ? ` + ${s.secondary_ip}` : ""}
+                    </span>
+                  </div>
+                  <button onClick={() => setCustomServers(prev => prev.filter((_, j) => j !== i))}
+                    style={{ background: "none", border: "none", color: "var(--rose)", cursor: "pointer", fontSize: 15, lineHeight: 1, opacity: 0.7 }}>×</button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {customServers.length === 0 && !addingCustom && (
+            <div style={{ color: "var(--text-dim)", fontSize: 12, padding: "8px 0" }}>
+              Using {config?.dns_servers?.length || 6} built-in servers. Add custom IPs above.
+            </div>
+          )}
+        </div>
+
+        <div className="sep" style={{ marginBottom: 24 }} />
+
+        {/* Action buttons */}
+        <div style={{ display: "flex", gap: 10 }}>
+          <button className="btn btn-primary btn-lg" style={{ flex: 1 }}
+            onClick={() => onStartBenchmark(customServers)}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <polygon points="5 3 19 12 5 21 5 3"/>
+            </svg>
+            Run Benchmark
+          </button>
+          <button className="btn btn-ghost btn-lg" onClick={onReset} disabled={isResetting}
+            style={{ minWidth: 160 }}>
+            {isResetting ? <><Spinner size={14} /> Resetting…</> : <>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>
+              </svg>
+              Reset to DHCP
+            </>}
+          </button>
+        </div>
+
+        {/* OS / admin status */}
+        {config && (
+          <div style={{ display: "flex", gap: 10, marginTop: 16, justifyContent: "center" }}>
+            <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+              OS: <span className="mono" style={{ color: "var(--text-secondary)" }}>{config.os}</span>
+            </span>
+            <span style={{ color: "var(--text-dim)" }}>·</span>
+            <span style={{ fontSize: 11, color: config.is_admin ? "var(--emerald)" : "var(--amber)" }}>
+              {config.is_admin ? "✓ Admin privileges active" : "⚠ Not running as admin — DNS apply disabled"}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Domain list preview */}
+      {config?.target_domains && (
+        <div style={{ marginTop: 28, display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center",
+          maxWidth: 560 }}>
+          {config.target_domains.map(d => (
+            <span key={d} className="mono" style={{ fontSize: 11, color: "var(--text-muted)",
+              background: "rgba(255,255,255,0.04)", border: "1px solid var(--border)", borderRadius: 4, padding: "3px 8px" }}>
+              {d}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Benchmark Progress Screen ──────────────────────────────────────────────
+function BenchmarkScreen({ progress }) {
+  const { completed = 0, total = 1, elapsed_s = 0, recentProbes = [] } = progress;
+  const pct = Math.round((completed / total) * 100);
+  const speed = elapsed_s > 0 ? (completed / elapsed_s).toFixed(1) : 0;
+  const remaining = elapsed_s > 0 && completed > 0
+    ? Math.max(0, ((total - completed) / (completed / elapsed_s))).toFixed(1)
+    : "—";
+
+  return (
+    <div className="content" style={{ minHeight: "100vh", display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center", padding: "32px 16px" }}>
+      <div style={{ width: "100%", maxWidth: 640 }}>
+
+        {/* Header */}
+        <div style={{ textAlign: "center", marginBottom: 40 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 12 }}>
+            <div className="pulse-dot" style={{ background: "var(--blue)" }} />
+            <span style={{ color: "var(--blue)", fontWeight: 600, fontSize: 13, letterSpacing: "0.05em" }}>
+              BENCHMARKING
+            </span>
+          </div>
+          <div style={{ fontSize: 36, fontWeight: 700, letterSpacing: "-0.03em", marginBottom: 6 }}>
+            <span className="glow-blue mono">{pct}%</span>
+            <span style={{ color: "var(--text-muted)", fontSize: 18, fontWeight: 400, marginLeft: 4 }}>complete</span>
+          </div>
+        </div>
+
+        {/* Progress track */}
+        <div className="progress-track" style={{ marginBottom: 28 }}>
+          <div className="progress-fill" style={{ width: `${pct}%` }} />
+        </div>
+
+        {/* Stats row */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 32 }}>
+          {[
+            { label: "Probes", value: `${completed} / ${total}` },
+            { label: "Elapsed", value: `${elapsed_s}s` },
+            { label: "Speed", value: `${speed}/s` },
+            { label: "ETA", value: remaining === "—" ? "—" : `~${remaining}s` },
+          ].map(s => (
+            <div key={s.label} className="stat-box">
+              <div className="mono" style={{ fontSize: 18, fontWeight: 600, color: "var(--text-primary)" }}>{s.value}</div>
+              <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Live feed */}
+        <div className="card" style={{ overflow: "hidden" }}>
+          <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", display: "flex",
+            alignItems: "center", gap: 8 }}>
+            <Spinner size={13} />
+            <span style={{ fontSize: 12, color: "var(--text-secondary)", fontWeight: 500 }}>Live Probe Feed</span>
+            <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--text-dim)" }}>Latest 8 results</span>
+          </div>
+          <div style={{ padding: "8px 0", minHeight: 200 }}>
+            {recentProbes.length === 0 ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 10,
+                  padding: "8px 16px" }}>
+                  <div className="skeleton" style={{ width: 60, height: 12 }} />
+                  <div className="skeleton" style={{ width: 130, height: 12 }} />
+                  <div style={{ marginLeft: "auto" }}>
+                    <div className="skeleton" style={{ width: 72, height: 18 }} />
+                  </div>
+                </div>
+              ))
+            ) : (
+              recentProbes.slice(-8).reverse().map((p, i) => (
+                <div key={i} className="feed-item" style={{ display: "flex", alignItems: "center", gap: 10,
+                  padding: "7px 16px", borderBottom: "1px solid var(--border)", fontSize: 12 }}>
+                  <span className="mono" style={{ color: "var(--text-muted)", minWidth: 70 }}>{p.server_name}</span>
+                  <span style={{ color: "var(--text-secondary)", flex: 1, overflow: "hidden",
+                    textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.domain}</span>
+                  <LatencyPill ms={p.dns_latency_ms} dim={!p.dns_success} />
+                  <StatusBadge status={p.status} />
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Results Screen ─────────────────────────────────────────────────────────
+function TierServerCard({ info, isAdmin, onApplyDNS, onFlushCache, applying }) {
+  const [expanded, setExpanded] = useState(true);
+  const tierClass = info.tier === "A" ? "tier-card-a" : info.tier === "B" ? "tier-card-b" : "tier-card-f";
+  const tierLabelClass = info.tier === "A" ? "tier-a" : info.tier === "B" ? "tier-b" : "tier-f";
+  const tierDesc = info.tier === "A"
+    ? "Full bypass — all domains reachable"
+    : info.tier === "B"
+    ? `Partial bypass — ${info.bypass_count}/${info.total_count} domains`
+    : "No bypass — all domains blocked";
+
+  const domains = Object.entries(info.per_domain || {});
+
+  return (
+    <div className={`card ${tierClass} fade-in`} style={{ marginBottom: 12, overflow: "visible" }}>
+      {/* Card header */}
+      <div style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: 14 }}>
+        <span className={`tier-label ${tierLabelClass}`}>
+          {info.tier}
+        </span>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+            <span style={{ fontWeight: 600, fontSize: 15 }}>{info.name}</span>
+            {info.tier === "A" && info === domains[0]?.[0] && (
+              <span style={{ fontSize: 10, background: "var(--emerald-dim)", color: "var(--emerald)",
+                border: "1px solid rgba(16,212,138,0.25)", borderRadius: 4, padding: "1px 6px",
+                fontWeight: 600, letterSpacing: "0.06em" }}>RECOMMENDED</span>
+            )}
+          </div>
+          <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+            <span className="mono" style={{ color: "var(--text-muted)", fontSize: 12 }}>{info.ip}</span>
+            {info.secondary_ip && (
+              <span className="mono" style={{ color: "var(--text-dim)", fontSize: 11 }}>
+                +{info.secondary_ip}
+              </span>
+            )}
+            <span style={{ fontSize: 12, color: "var(--text-muted)" }}>·</span>
+            <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>{tierDesc}</span>
+          </div>
+        </div>
+
+        {/* Perf stats */}
+        <div style={{ display: "flex", gap: 8, marginRight: 8 }}>
+          <div className="stat-box" style={{ minWidth: 56 }}>
+            <div className="mono" style={{ fontSize: 13, fontWeight: 600,
+              color: info.avg_dns_ms < 100 ? "var(--emerald)" : info.avg_dns_ms < 300 ? "var(--amber)" : "var(--rose)" }}>
+              {Math.round(info.avg_dns_ms)}
+            </div>
+            <div style={{ fontSize: 10, color: "var(--text-muted)" }}>DNS ms</div>
+          </div>
+          <div className="stat-box" style={{ minWidth: 56 }}>
+            <div className="mono" style={{ fontSize: 13, fontWeight: 600, color: "var(--text-secondary)" }}>
+              {info.avg_http_ms > 0 ? Math.round(info.avg_http_ms) : "—"}
+            </div>
+            <div style={{ fontSize: 10, color: "var(--text-muted)" }}>HTTP ms</div>
+          </div>
+          <div className="stat-box" style={{ minWidth: 48 }}>
+            <div className="mono" style={{ fontSize: 13, fontWeight: 600,
+              color: info.tier === "A" ? "var(--emerald)" : info.tier === "B" ? "var(--amber)" : "var(--rose)" }}>
+              {info.bypass_pct}%
+            </div>
+            <div style={{ fontSize: 10, color: "var(--text-muted)" }}>Bypass</div>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {(info.tier === "A" || info.tier === "B") && (
+            <button
+              className={`btn btn-sm ${info.tier === "A" ? "btn-emerald" : "btn-ghost"}`}
+              disabled={!isAdmin || applying === info.name}
+              onClick={() => onApplyDNS(info)}
+              title={!isAdmin ? "Backend must run as admin to apply DNS" : ""}>
+              {applying === info.name ? <Spinner size={12} /> :
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                  <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>}
+              Apply DNS
+            </button>
+          )}
+          <button className="btn btn-ghost btn-sm"
+            onClick={() => setExpanded(e => !e)}
+            style={{ padding: "6px 10px" }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="2" strokeLinecap="round"
+              style={{ transform: expanded ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Domain breakdown */}
+      {expanded && (
+        <div style={{ padding: "0 20px 14px", borderTop: "1px solid var(--border)" }}>
+          <div style={{ paddingTop: 12 }}>
+            {domains.map(([domain, data]) => (
+              <div key={domain} className="domain-row">
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 13,
+                    color: data.status === "BYPASS" ? "var(--emerald)" : "var(--text-muted)" }}>
+                    {data.status === "BYPASS" ? "✓" :
+                     data.status === "BLOCKED" || data.status === "DNS_FAILED" ? "✕" :
+                     data.status === "SANCTIONED" ? "⊘" : "⚠"}
+                  </span>
+                  <span className="mono" style={{ fontSize: 12, color: "var(--text-secondary)" }}>{domain}</span>
+                </div>
+                <span className="mono" style={{ fontSize: 11, color: "var(--text-dim)" }}>
+                  {data.resolved_ip || "—"}
+                </span>
+                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  <LatencyPill ms={data.dns_ms} dim={data.status === "DNS_FAILED"} />
+                  {data.http_ms != null && <>
+                    <span style={{ color: "var(--text-dim)", fontSize: 10 }}>·</span>
+                    <LatencyPill ms={data.http_ms} />
+                  </>}
+                </div>
+                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  {data.http_code && (
+                    <span className="mono" style={{ fontSize: 11,
+                      color: [200,301,302,303,307,308].includes(data.http_code) ? "var(--emerald)"
+                           : [403,451].includes(data.http_code) ? "var(--amber)" : "var(--rose)" }}>
+                      {data.http_code}
+                    </span>
+                  )}
+                  <StatusBadge status={data.status} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ResultsScreen({ results, elapsed, onRerun, onReset, isAdmin, onApplyDNS, onFlushCache, applying, isResetting }) {
+  const tiers = useMemo(() => {
+    const a = results.filter(r => r.tier === "A").sort((a, b) => a.avg_dns_ms - b.avg_dns_ms);
+    const b = results.filter(r => r.tier === "B").sort((a, b) => b.bypass_count - a.bypass_count);
+    const f = results.filter(r => r.tier === "F").sort((a, b) => a.name.localeCompare(b.name));
+    return { a, b, f };
+  }, [results]);
+
+  const totalBypass = results.reduce((s, r) => s + r.bypass_count, 0);
+  const totalProbes = results.reduce((s, r) => s + r.total_count, 0);
+  const best = tiers.a[0] || tiers.b[0];
+
+  return (
+    <div className="content" style={{ maxWidth: 920, margin: "0 auto", padding: "32px 16px 64px" }}>
+
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between",
+        marginBottom: 32, flexWrap: "wrap", gap: 16 }}>
+        <div>
+          <div className="section-eyebrow" style={{ marginBottom: 6 }}>Benchmark Complete</div>
+          <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: "-0.03em", marginBottom: 4 }}>
+            DNS Performance Report
+          </h1>
+          <p style={{ color: "var(--text-muted)", fontSize: 13 }}>
+            {totalProbes} probes across {results.length} servers — completed in {elapsed}s
+          </p>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button className="btn btn-ghost" onClick={onReset} disabled={isResetting}>
+            {isResetting ? <><Spinner size={13} /> Resetting…</> : <>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>
+              </svg>
+              Reset DNS
+            </>}
+          </button>
+          <button className="btn btn-ghost" onClick={onFlushCache}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.51"/>
+            </svg>
+            Flush Cache
+          </button>
+          <button className="btn btn-primary" onClick={onRerun}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <polygon points="5 3 19 12 5 21 5 3"/>
+            </svg>
+            New Benchmark
+          </button>
+        </div>
+      </div>
+
+      {/* Summary stats */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 32 }}>
+        {[
+          { label: "Tier A Servers", value: tiers.a.length, color: "var(--emerald)", desc: "Full bypass" },
+          { label: "Tier B Servers", value: tiers.b.length, color: "var(--amber)", desc: "Partial bypass" },
+          { label: "Tier F Servers", value: tiers.f.length, color: "var(--rose)", desc: "No bypass" },
+          { label: "Overall Bypass", value: `${Math.round(totalBypass/totalProbes*100)}%`,
+            color: totalBypass/totalProbes > 0.5 ? "var(--emerald)" : "var(--amber)", desc: `${totalBypass}/${totalProbes} probes` },
+        ].map(s => (
+          <div key={s.label} className="card" style={{ padding: "16px 20px" }}>
+            <div style={{ fontSize: 26, fontWeight: 700, color: s.color, fontFamily: "var(--font-mono)", marginBottom: 2 }}>
+              {s.value}
+            </div>
+            <div style={{ fontSize: 13, color: "var(--text-secondary)", fontWeight: 500 }}>{s.label}</div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{s.desc}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Best recommendation banner */}
+      {best && (
+        <div style={{ marginBottom: 28, padding: "14px 20px",
+          background: "linear-gradient(90deg, rgba(16,212,138,0.08) 0%, rgba(79,127,255,0.05) 100%)",
+          border: "1px solid rgba(16,212,138,0.2)", borderRadius: "var(--radius-lg)",
+          display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+          <div style={{ fontSize: 13, color: "var(--emerald)" }}>🏆</div>
+          <div style={{ flex: 1 }}>
+            <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>Recommended: </span>
+            <span style={{ color: "var(--emerald)", fontWeight: 600 }}>{best.name}</span>
+            <span className="mono" style={{ color: "var(--text-muted)", marginLeft: 8, fontSize: 12 }}>{best.ip}</span>
+            <span style={{ color: "var(--text-muted)", marginLeft: 8, fontSize: 12 }}>
+              · {best.bypass_count}/{best.total_count} domains · avg {Math.round(best.avg_dns_ms)}ms DNS
+            </span>
+          </div>
+          <button className="btn btn-emerald btn-sm" disabled={!isAdmin || applying === best.name}
+            onClick={() => onApplyDNS(best)}
+            title={!isAdmin ? "Backend must run as admin to apply DNS" : ""}>
+            {applying === best.name ? <><Spinner size={12} /> Applying…</> : "⚡ Apply Now"}
+          </button>
+        </div>
+      )}
+
+      {/* Tier A */}
+      {tiers.a.length > 0 && (
+        <div style={{ marginBottom: 28 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+            <span className="tier-label tier-a">A</span>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: 14 }}>Tier A — Full Bypass</div>
+              <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{tiers.a.length} server{tiers.a.length !== 1 ? "s" : ""} — all domains reachable</div>
+            </div>
+          </div>
+          {tiers.a.map((info, i) => (
+            <TierServerCard key={info.name} info={info} isAdmin={isAdmin}
+              onApplyDNS={onApplyDNS} onFlushCache={onFlushCache} applying={applying} />
+          ))}
+        </div>
+      )}
+
+      {/* Tier B */}
+      {tiers.b.length > 0 && (
+        <div style={{ marginBottom: 28 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+            <span className="tier-label tier-b">B</span>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: 14 }}>Tier B — Partial Bypass</div>
+              <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{tiers.b.length} server{tiers.b.length !== 1 ? "s" : ""} — some domains reachable</div>
+            </div>
+          </div>
+          {tiers.b.map(info => (
+            <TierServerCard key={info.name} info={info} isAdmin={isAdmin}
+              onApplyDNS={onApplyDNS} onFlushCache={onFlushCache} applying={applying} />
+          ))}
+        </div>
+      )}
+
+      {/* Tier F */}
+      {tiers.f.length > 0 && (
+        <div style={{ marginBottom: 28 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+            <span className="tier-label tier-f">F</span>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: 14 }}>Tier F — No Bypass</div>
+              <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{tiers.f.length} server{tiers.f.length !== 1 ? "s" : ""} — blocked or dead</div>
+            </div>
+          </div>
+          {tiers.f.map(info => (
+            <TierServerCard key={info.name} info={info} isAdmin={isAdmin}
+              onApplyDNS={onApplyDNS} onFlushCache={onFlushCache} applying={applying} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Error Banner ────────────────────────────────────────────────────────────
+function ErrorBanner({ message, onDismiss }) {
+  return (
+    <div style={{ position: "fixed", top: 16, left: "50%", transform: "translateX(-50%)",
+      zIndex: 9999, maxWidth: 520, width: "calc(100% - 32px)" }}>
+      <div style={{ background: "var(--bg-card)", border: "1px solid rgba(244,63,94,0.35)",
+        borderRadius: "var(--radius)", padding: "14px 18px", display: "flex", gap: 10, alignItems: "flex-start",
+        boxShadow: "0 8px 32px rgba(0,0,0,0.5)" }}>
+        <span style={{ color: "var(--rose)", fontSize: 16, flexShrink: 0 }}>⚠</span>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4 }}>Connection Error</div>
+          <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.6 }}>{message}</div>
+          <div style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 6 }}>
+            Make sure the backend is running: <span className="mono" style={{ color: "var(--text-muted)" }}>python backend/start.py</span>
+          </div>
+        </div>
+        <button onClick={onDismiss} style={{ background: "none", border: "none",
+          color: "var(--text-muted)", cursor: "pointer", fontSize: 18, lineHeight: 1, flexShrink: 0 }}>×</button>
+      </div>
+    </div>
+  );
+}
+
+// ── Main App ───────────────────────────────────────────────────────────────
+function App() {
+  const [screen, setScreen] = useState("landing"); // landing | benchmarking | results
+  const [config, setConfig] = useState(null);
+  const [progress, setProgress] = useState({ completed: 0, total: 0, elapsed_s: 0, recentProbes: [] });
+  const [results, setResults] = useState([]);
+  const [elapsed, setElapsed] = useState(0);
+  const [applying, setApplying] = useState(null);
+  const [isResetting, setIsResetting] = useState(false);
+  const [toasts, setToasts] = useState([]);
+  const [error, setError] = useState(null);
+  const eventSourceRef = useRef(null);
+
+  const addToast = useCallback((message, type = "info") => {
+    const id = Date.now();
+    setToasts(t => [...t, { id, message, type }]);
+  }, []);
+
+  const removeToast = useCallback((id) => {
+    setToasts(t => t.filter(x => x.id !== id));
+  }, []);
+
+  // Load config on mount
+  useEffect(() => {
+    fetch(`${API}/api/config`)
+      .then(r => r.json())
+      .then(setConfig)
+      .catch(() => setError("Cannot connect to the DNS Benchmarker backend."));
+  }, []);
+
+  const startBenchmark = useCallback(async (customServers) => {
+    setScreen("benchmarking");
+    setProgress({ completed: 0, total: 0, elapsed_s: 0, recentProbes: [] });
+    setResults([]);
+
+    // Close existing SSE
+    if (eventSourceRef.current) eventSourceRef.current.close();
+
+    const body = { custom_servers: customServers, include_defaults: true };
+
+    // SSE via fetch (POST)
+    try {
+      const response = await fetch(`${API}/api/benchmark/stream`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.detail || "Benchmark failed");
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop(); // keep incomplete line
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          try {
+            const payload = JSON.parse(line.slice(6));
+            if (payload.type === "start") {
+              setProgress(p => ({ ...p, total: payload.total }));
+            } else if (payload.type === "probe") {
+              setProgress(p => ({
+                completed: payload.completed,
+                total: payload.total,
+                elapsed_s: payload.elapsed_s,
+                recentProbes: [...p.recentProbes, payload],
+              }));
+            } else if (payload.type === "complete") {
+              setElapsed(payload.elapsed_s);
+              setResults(payload.tiers);
+              setScreen("results");
+            }
+          } catch (e) { /* ignore parse errors */ }
+        }
+      }
+    } catch (err) {
+      setError(err.message || "Benchmark stream failed.");
+      setScreen("landing");
+    }
+  }, []);
+
+  const applyDNS = useCallback(async (info) => {
+    setApplying(info.name);
+    try {
+      const res = await fetch(`${API}/api/dns/apply`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ server_name: info.name, primary_ip: info.ip, secondary_ip: info.secondary_ip }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Failed");
+      addToast(`DNS applied: ${info.name} (${data.applied_ips.join(", ")})`, "success");
+      if (config) setConfig(c => ({ ...c, is_admin: true }));
+    } catch (err) {
+      addToast(err.message, "error");
+    } finally {
+      setApplying(null);
+    }
+  }, [addToast, config]);
+
+  const resetDNS = useCallback(async () => {
+    setIsResetting(true);
+    try {
+      const res = await fetch(`${API}/api/dns/reset`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Reset failed");
+      addToast(data.message, "success");
+    } catch (err) {
+      addToast(err.message, "error");
+    } finally {
+      setIsResetting(false);
+    }
+  }, [addToast]);
+
+  const flushCache = useCallback(async () => {
+    try {
+      const res = await fetch(`${API}/api/dns/flush-cache`, { method: "POST" });
+      const data = await res.json();
+      addToast(data.message, data.success ? "success" : "error");
+    } catch (err) {
+      addToast("Cache flush failed.", "error");
+    }
+  }, [addToast]);
+
+  return (
+    <>
+      <div className="nebula" />
+      <div className="grid-bg" />
+
+      {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
+
+      {screen === "landing" && (
+        <LandingScreen
+          config={config}
+          onStartBenchmark={startBenchmark}
+          onReset={resetDNS}
+          isResetting={isResetting}
+        />
+      )}
+
+      {screen === "benchmarking" && (
+        <BenchmarkScreen progress={progress} />
+      )}
+
+      {screen === "results" && (
+        <ResultsScreen
+          results={results}
+          elapsed={elapsed}
+          isAdmin={config?.is_admin || false}
+          onRerun={() => setScreen("landing")}
+          onReset={resetDNS}
+          onApplyDNS={applyDNS}
+          onFlushCache={flushCache}
+          applying={applying}
+          isResetting={isResetting}
+        />
+      )}
+
+      {/* Toast stack */}
+      <div style={{ position: "fixed", bottom: 24, right: 24, display: "flex", flexDirection: "column",
+        gap: 10, zIndex: 9999 }}>
+        {toasts.map(t => (
+          <Toast key={t.id} toast={t} onClose={() => removeToast(t.id)} />
+        ))}
+      </div>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
