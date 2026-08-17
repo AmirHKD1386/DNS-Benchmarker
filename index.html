@@ -22,7 +22,7 @@
 
       --border:     rgba(255,255,255,0.07);
       --border-mid: rgba(255,255,255,0.12);
-      --border-hi:  rgba(255,255,255,0.18);
+      --border-hi:  rgba(255,255,255,0.20);
 
       --text-primary:   #f0f0ff;
       --text-secondary: #8888aa;
@@ -30,28 +30,28 @@
       --text-dim:       #3a3a50;
 
       --blue:      #4f7fff;
-      --blue-glow: rgba(79,127,255,0.18);
-      --blue-dim:  rgba(79,127,255,0.08);
+      --blue-glow: rgba(79,127,255,0.22);
+      --blue-dim:  rgba(79,127,255,0.10);
 
       --emerald:      #10d48a;
-      --emerald-glow: rgba(16,212,138,0.15);
-      --emerald-dim:  rgba(16,212,138,0.06);
+      --emerald-glow: rgba(16,212,138,0.20);
+      --emerald-dim:  rgba(16,212,138,0.08);
 
       --amber:      #f59e0b;
-      --amber-glow: rgba(245,158,11,0.15);
-      --amber-dim:  rgba(245,158,11,0.06);
+      --amber-glow: rgba(245,158,11,0.18);
+      --amber-dim:  rgba(245,158,11,0.07);
 
       --rose:      #f43f5e;
-      --rose-glow: rgba(244,63,94,0.15);
+      --rose-glow: rgba(244,63,94,0.18);
       --rose-dim:  rgba(244,63,94,0.06);
 
       --violet:      #8b5cf6;
-      --violet-glow: rgba(139,92,246,0.12);
+      --violet-glow: rgba(139,92,246,0.15);
 
       --radius-sm: 6px;
       --radius:    10px;
       --radius-lg: 16px;
-      --radius-xl: 20px;
+      --radius-xl: 22px;
 
       --font-mono: 'JetBrains Mono', monospace;
       --font-sans: 'Inter', system-ui, sans-serif;
@@ -74,23 +74,46 @@
     ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
     ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
 
-    /* ── Background Nebula ── */
+    /* ── Animated background nebula ── */
     .nebula {
       position: fixed; inset: 0; pointer-events: none; z-index: 0;
       background:
-        radial-gradient(ellipse 60% 50% at 15% 20%, rgba(79,127,255,0.07) 0%, transparent 70%),
-        radial-gradient(ellipse 50% 60% at 85% 80%, rgba(139,92,246,0.06) 0%, transparent 70%),
-        radial-gradient(ellipse 40% 40% at 50% 50%, rgba(16,212,138,0.03) 0%, transparent 70%);
+        radial-gradient(ellipse 70% 55% at 10% 15%, rgba(79,127,255,0.09) 0%, transparent 65%),
+        radial-gradient(ellipse 55% 65% at 88% 82%, rgba(139,92,246,0.08) 0%, transparent 65%),
+        radial-gradient(ellipse 45% 45% at 52% 52%, rgba(16,212,138,0.04) 0%, transparent 70%);
+      animation: nebula-drift 20s ease-in-out infinite alternate;
     }
 
-    /* ── Grid overlay ── */
-    .grid-bg {
+    @keyframes nebula-drift {
+      0%   { opacity: 1; transform: scale(1) rotate(0deg); }
+      50%  { opacity: 0.85; }
+      100% { opacity: 1; transform: scale(1.04) rotate(1deg); }
+    }
+
+    /* ── Dot-grid animated background ── */
+    .dot-grid {
       position: fixed; inset: 0; pointer-events: none; z-index: 0;
-      background-image:
-        linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);
-      background-size: 48px 48px;
-      mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%);
+      background-image: radial-gradient(circle, rgba(255,255,255,0.055) 1px, transparent 1px);
+      background-size: 28px 28px;
+      mask-image: radial-gradient(ellipse 85% 85% at 50% 50%, black 30%, transparent 100%);
+      animation: dot-grid-breathe 8s ease-in-out infinite alternate;
+    }
+
+    @keyframes dot-grid-breathe {
+      0%   { opacity: 0.6; }
+      100% { opacity: 1; }
+    }
+
+    /* ── Scan line overlay ── */
+    .scan-line {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.03) 2px,
+        rgba(0,0,0,0.03) 4px
+      );
     }
 
     .content { position: relative; z-index: 1; }
@@ -100,115 +123,244 @@
       display: inline-flex; align-items: center; gap: 8px;
       padding: 10px 20px; border-radius: var(--radius);
       font-family: var(--font-sans); font-size: 13px; font-weight: 600;
-      cursor: pointer; border: none; transition: all 0.18s ease;
+      cursor: pointer; border: none; transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
       letter-spacing: 0.01em; white-space: nowrap; text-decoration: none;
+      position: relative; overflow: hidden;
     }
-    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.06) 0%, transparent 60%);
+      opacity: 0; transition: opacity 0.2s ease;
+    }
+    .btn:hover::after { opacity: 1; }
+    .btn:disabled { opacity: 0.38; cursor: not-allowed; pointer-events: none; }
+    .btn:not(:disabled):active { transform: scale(0.96) !important; }
+
     .btn-primary {
-      background: var(--blue); color: #fff;
-      box-shadow: 0 0 0 0 var(--blue-glow), 0 1px 3px rgba(0,0,0,0.4);
+      background: linear-gradient(135deg, #5885ff 0%, var(--blue) 100%);
+      color: #fff;
+      box-shadow: 0 0 0 0 var(--blue-glow), 0 2px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.15);
     }
     .btn-primary:not(:disabled):hover {
-      background: #6090ff;
-      box-shadow: 0 0 24px var(--blue-glow), 0 1px 3px rgba(0,0,0,0.4);
-      transform: translateY(-1px);
+      background: linear-gradient(135deg, #6a93ff 0%, #5885ff 100%);
+      box-shadow: 0 0 32px var(--blue-glow), 0 4px 16px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.2);
+      transform: translateY(-2px);
     }
     .btn-ghost {
-      background: transparent; color: var(--text-secondary);
+      background: rgba(255,255,255,0.04);
+      color: var(--text-secondary);
       border: 1px solid var(--border-mid);
+      backdrop-filter: blur(8px);
     }
     .btn-ghost:not(:disabled):hover {
-      background: var(--bg-hover); color: var(--text-primary);
+      background: rgba(255,255,255,0.08);
+      color: var(--text-primary);
       border-color: var(--border-hi);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
     }
     .btn-danger {
       background: transparent; color: var(--rose);
-      border: 1px solid rgba(244,63,94,0.25);
+      border: 1px solid rgba(244,63,94,0.28);
     }
     .btn-danger:not(:disabled):hover {
       background: var(--rose-dim);
-      border-color: rgba(244,63,94,0.4);
-      box-shadow: 0 0 16px var(--rose-glow);
-    }
-    .btn-emerald {
-      background: var(--emerald); color: #021a0e; font-weight: 700;
-      box-shadow: 0 0 0 0 var(--emerald-glow);
-    }
-    .btn-emerald:not(:disabled):hover {
-      background: #12e895;
-      box-shadow: 0 0 20px var(--emerald-glow);
+      border-color: rgba(244,63,94,0.5);
+      box-shadow: 0 0 20px var(--rose-glow);
       transform: translateY(-1px);
     }
+    .btn-emerald {
+      background: linear-gradient(135deg, #12e895 0%, var(--emerald) 100%);
+      color: #021a0e; font-weight: 700;
+      box-shadow: 0 0 0 0 var(--emerald-glow), 0 2px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+    }
+    .btn-emerald:not(:disabled):hover {
+      background: linear-gradient(135deg, #20f5a0 0%, #12e895 100%);
+      box-shadow: 0 0 28px var(--emerald-glow), 0 4px 16px rgba(0,0,0,0.4);
+      transform: translateY(-2px);
+    }
     .btn-sm { padding: 6px 14px; font-size: 12px; }
-    .btn-lg { padding: 14px 28px; font-size: 14px; }
+    .btn-lg { padding: 15px 32px; font-size: 14px; border-radius: 12px; }
 
     /* ── Cards ── */
     .card {
-      background: var(--bg-card); border: 1px solid var(--border);
-      border-radius: var(--radius-lg); overflow: hidden;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
+    }
+    .card:hover {
+      border-color: var(--border-mid);
+      box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+      transform: translateY(-1px);
     }
     .card-glass {
-      background: rgba(19,19,30,0.7); backdrop-filter: blur(20px);
-      border: 1px solid var(--border-mid); border-radius: var(--radius-xl);
+      background: rgba(13,13,22,0.72);
+      backdrop-filter: blur(28px) saturate(180%);
+      -webkit-backdrop-filter: blur(28px) saturate(180%);
+      border: 1px solid var(--border-mid);
+      border-radius: var(--radius-xl);
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.03) inset,
+        0 24px 64px rgba(0,0,0,0.6),
+        0 4px 16px rgba(0,0,0,0.3);
     }
 
-    /* ── Badge ── */
-    .badge {
-      display: inline-flex; align-items: center; gap: 4px;
-      padding: 2px 8px; border-radius: 4px;
-      font-size: 11px; font-weight: 600; font-family: var(--font-mono);
-      letter-spacing: 0.05em;
+    /* ── Tier A animated border card ── */
+    @keyframes rotate-gradient {
+      0%   { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
     }
-    .badge-bypass  { background: var(--emerald-dim); color: var(--emerald); border: 1px solid rgba(16,212,138,0.2); }
-    .badge-blocked { background: var(--rose-dim);    color: var(--rose);    border: 1px solid rgba(244,63,94,0.2); }
-    .badge-sanctioned { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(245,158,11,0.2); }
-    .badge-filtered   { background: rgba(139,92,246,0.08); color: #a78bfa; border: 1px solid rgba(139,92,246,0.2); }
-    .badge-dns_failed { background: rgba(255,255,255,0.04); color: var(--text-muted); border: 1px solid var(--border); }
-    .badge-probe_error { background: rgba(245,158,11,0.06); color: #fbbf24; border: 1px solid rgba(245,158,11,0.2); }
 
-    /* ── Input ── */
-    .input {
-      background: var(--bg-input); border: 1px solid var(--border-mid);
-      color: var(--text-primary); border-radius: var(--radius);
-      padding: 9px 12px; font-family: var(--font-mono); font-size: 13px;
-      width: 100%; outline: none; transition: border-color 0.15s;
-    }
-    .input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-dim); }
-    .input::placeholder { color: var(--text-dim); }
-
-    /* ── Tier cards ── */
     .tier-card-a {
-      border: 1px solid rgba(16,212,138,0.25);
-      background: linear-gradient(135deg, rgba(16,212,138,0.05) 0%, var(--bg-card) 60%);
+      position: relative;
+      border: none !important;
+      background: linear-gradient(135deg, rgba(16,212,138,0.06) 0%, rgba(13,13,22,0.95) 55%);
+      isolation: isolate;
     }
+    .tier-card-a::before {
+      content: '';
+      position: absolute;
+      inset: -1.5px;
+      border-radius: calc(var(--radius-lg) + 2px);
+      background: conic-gradient(
+        from 0deg,
+        rgba(16,212,138,0.0) 0%,
+        rgba(16,212,138,0.6) 20%,
+        rgba(79,127,255,0.4) 40%,
+        rgba(16,212,138,0.0) 60%,
+        rgba(16,212,138,0.0) 100%
+      );
+      animation: rotate-gradient 4s linear infinite;
+      z-index: -1;
+    }
+    .tier-card-a::after {
+      content: '';
+      position: absolute;
+      inset: 1px;
+      border-radius: calc(var(--radius-lg) - 0px);
+      background: linear-gradient(135deg, rgba(16,212,138,0.06) 0%, #13131e 55%);
+      z-index: -1;
+    }
+
     .tier-card-b {
-      border: 1px solid rgba(245,158,11,0.22);
-      background: linear-gradient(135deg, rgba(245,158,11,0.05) 0%, var(--bg-card) 60%);
+      border: 1px solid rgba(245,158,11,0.25);
+      background: linear-gradient(135deg, rgba(245,158,11,0.06) 0%, var(--bg-card) 60%);
+      box-shadow: 0 0 0 1px rgba(245,158,11,0.06) inset;
     }
     .tier-card-f {
       border: 1px solid rgba(244,63,94,0.18);
       background: linear-gradient(135deg, rgba(244,63,94,0.04) 0%, var(--bg-card) 60%);
     }
 
-    /* ── Progress bar ── */
+    /* ── Progress bar — dramatic ── */
     .progress-track {
-      height: 3px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden;
+      height: 6px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 99px;
+      overflow: hidden;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.04) inset;
     }
     .progress-fill {
-      height: 100%; border-radius: 2px;
-      background: linear-gradient(90deg, var(--blue), #7eb3ff);
-      transition: width 0.3s ease;
-      box-shadow: 0 0 8px rgba(79,127,255,0.5);
+      height: 100%;
+      border-radius: 99px;
+      background: linear-gradient(90deg, #3a6bff, #60a0ff, #10d48a);
+      background-size: 200% 100%;
+      transition: width 0.35s ease;
+      box-shadow: 0 0 14px rgba(79,127,255,0.7), 0 0 28px rgba(79,127,255,0.3);
+      animation: progress-shimmer 2s linear infinite;
     }
+
+    @keyframes progress-shimmer {
+      0%   { background-position: 100% 0; }
+      100% { background-position: -100% 0; }
+    }
+
+    /* ── Status badge — pill with left-bar ── */
+    .badge {
+      display: inline-flex; align-items: center;
+      height: 22px;
+      padding: 0 9px 0 6px;
+      border-radius: 99px;
+      font-size: 10.5px; font-weight: 700; font-family: var(--font-mono);
+      letter-spacing: 0.06em;
+      gap: 5px;
+      position: relative;
+      overflow: hidden;
+    }
+    .badge::before {
+      content: '';
+      display: block;
+      width: 3px;
+      height: 10px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    .badge-bypass  {
+      background: rgba(16,212,138,0.12); color: #22f0a0;
+      border: 1px solid rgba(16,212,138,0.28);
+      box-shadow: 0 0 8px rgba(16,212,138,0.1);
+    }
+    .badge-bypass::before  { background: #10d48a; }
+
+    .badge-blocked {
+      background: rgba(244,63,94,0.11); color: #ff6080;
+      border: 1px solid rgba(244,63,94,0.25);
+    }
+    .badge-blocked::before { background: var(--rose); }
+
+    .badge-sanctioned {
+      background: rgba(245,158,11,0.10); color: #fbbf24;
+      border: 1px solid rgba(245,158,11,0.25);
+    }
+    .badge-sanctioned::before { background: var(--amber); }
+
+    .badge-filtered {
+      background: rgba(139,92,246,0.10); color: #b08eff;
+      border: 1px solid rgba(139,92,246,0.25);
+    }
+    .badge-filtered::before { background: var(--violet); }
+
+    .badge-dns_failed {
+      background: rgba(255,255,255,0.04); color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+    .badge-dns_failed::before { background: var(--text-dim); }
+
+    .badge-probe_error {
+      background: rgba(245,158,11,0.07); color: #fbbf24;
+      border: 1px solid rgba(245,158,11,0.2);
+    }
+    .badge-probe_error::before { background: #fbbf24; }
+
+    /* ── Input ── */
+    .input {
+      background: rgba(13,13,22,0.8);
+      border: 1px solid var(--border-mid);
+      color: var(--text-primary);
+      border-radius: var(--radius);
+      padding: 10px 13px;
+      font-family: var(--font-mono); font-size: 13px;
+      width: 100%; outline: none;
+      transition: border-color 0.18s, box-shadow 0.18s;
+      backdrop-filter: blur(8px);
+    }
+    .input:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px var(--blue-dim), 0 0 16px rgba(79,127,255,0.12);
+    }
+    .input::placeholder { color: var(--text-dim); }
 
     /* ── Skeleton ── */
     @keyframes shimmer {
       0%   { background-position: -600px 0; }
-      100% { background-position: 600px 0; }
+      100% { background-position:  600px 0; }
     }
     .skeleton {
       background: linear-gradient(90deg,
-        rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 100%);
+        rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.09) 50%, rgba(255,255,255,0.04) 100%);
       background-size: 600px 100%;
       animation: shimmer 1.6s infinite linear;
       border-radius: var(--radius-sm);
@@ -216,8 +368,8 @@
 
     /* ── Pulse dot ── */
     @keyframes pulse-ring {
-      0%   { transform: scale(1); opacity: 0.8; }
-      100% { transform: scale(2.2); opacity: 0; }
+      0%   { transform: scale(1); opacity: 0.9; }
+      100% { transform: scale(2.6); opacity: 0; }
     }
     .pulse-dot {
       position: relative; display: inline-flex;
@@ -228,70 +380,167 @@
       background: inherit; animation: pulse-ring 1.4s infinite ease-out;
     }
 
-    /* ── Glow text ── */
-    .glow-blue { color: var(--blue); text-shadow: 0 0 20px rgba(79,127,255,0.4); }
-    .glow-emerald { color: var(--emerald); text-shadow: 0 0 20px rgba(16,212,138,0.3); }
-
-    /* ── Toast ── */
-    @keyframes slide-up {
-      from { transform: translateY(20px); opacity: 0; }
-      to   { transform: translateY(0);    opacity: 1; }
-    }
-    .toast {
-      position: fixed; bottom: 24px; right: 24px; z-index: 9999;
-      background: var(--bg-card); border: 1px solid var(--border-mid);
-      border-radius: var(--radius); padding: 14px 18px;
-      display: flex; align-items: center; gap: 10px;
-      font-size: 13px; max-width: 360px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-      animation: slide-up 0.25s ease;
-    }
-    .toast-success { border-left: 3px solid var(--emerald); }
-    .toast-error   { border-left: 3px solid var(--rose); }
-    .toast-info    { border-left: 3px solid var(--blue); }
-
-    /* ── Domain row ── */
-    .domain-row {
-      display: grid; grid-template-columns: 1fr auto auto auto;
-      align-items: center; gap: 10px;
-      padding: 7px 0; border-bottom: 1px solid var(--border);
-      font-size: 12px;
-    }
-    .domain-row:last-child { border-bottom: none; }
-
-    /* ── Tier label ── */
+    /* ── Tier badge — large glow ring ── */
     .tier-label {
       font-family: var(--font-mono); font-weight: 700;
-      font-size: 22px; letter-spacing: -0.02em; line-height: 1;
+      font-size: 28px; letter-spacing: -0.02em; line-height: 1;
+      width: 52px; height: 52px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 14px;
+      flex-shrink: 0;
     }
-    .tier-a { color: var(--emerald); }
-    .tier-b { color: var(--amber); }
-    .tier-f { color: var(--rose); }
+    .tier-a {
+      color: var(--emerald);
+      background: rgba(16,212,138,0.1);
+      border: 1px solid rgba(16,212,138,0.3);
+      box-shadow: 0 0 20px rgba(16,212,138,0.25), 0 0 40px rgba(16,212,138,0.1);
+    }
+    .tier-b {
+      color: var(--amber);
+      background: rgba(245,158,11,0.1);
+      border: 1px solid rgba(245,158,11,0.3);
+      box-shadow: 0 0 20px rgba(245,158,11,0.2), 0 0 40px rgba(245,158,11,0.08);
+    }
+    .tier-f {
+      color: var(--rose);
+      background: rgba(244,63,94,0.08);
+      border: 1px solid rgba(244,63,94,0.25);
+      box-shadow: 0 0 20px rgba(244,63,94,0.15);
+    }
+
+    /* ── Tier section header badge (smaller) ── */
+    .tier-label-sm {
+      font-family: var(--font-mono); font-weight: 700;
+      font-size: 20px; letter-spacing: -0.02em; line-height: 1;
+      width: 40px; height: 40px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 10px; flex-shrink: 0;
+    }
+    .tier-a.tier-label-sm {
+      color: var(--emerald); background: rgba(16,212,138,0.1);
+      border: 1px solid rgba(16,212,138,0.3);
+      box-shadow: 0 0 12px rgba(16,212,138,0.2);
+    }
+    .tier-b.tier-label-sm {
+      color: var(--amber); background: rgba(245,158,11,0.1);
+      border: 1px solid rgba(245,158,11,0.3);
+      box-shadow: 0 0 12px rgba(245,158,11,0.15);
+    }
+    .tier-f.tier-label-sm {
+      color: var(--rose); background: rgba(244,63,94,0.08);
+      border: 1px solid rgba(244,63,94,0.25);
+    }
 
     /* ── Stat box ── */
     .stat-box {
-      background: rgba(255,255,255,0.03); border: 1px solid var(--border);
-      border-radius: var(--radius-sm); padding: 8px 12px; text-align: center;
+      background: rgba(255,255,255,0.035);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      text-align: center;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .stat-box:hover {
+      background: rgba(255,255,255,0.06);
+      border-color: var(--border-mid);
     }
 
+    /* ── Domain row ── */
+    .domain-row {
+      display: grid;
+      grid-template-columns: 1fr auto auto auto;
+      align-items: center;
+      gap: 12px;
+      padding: 9px 16px;
+      font-size: 12px;
+      transition: background 0.15s;
+      border-radius: 6px;
+    }
+    .domain-row:nth-child(odd)  { background: rgba(255,255,255,0.024); }
+    .domain-row:nth-child(even) { background: transparent; }
+    .domain-row:hover { background: rgba(255,255,255,0.05) !important; }
+
     /* ── Separator ── */
-    .sep { height: 1px; background: var(--border); }
+    .sep {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border-mid) 20%, var(--border-mid) 80%, transparent);
+    }
 
     /* ── Section label ── */
     .section-eyebrow {
-      font-size: 10px; font-weight: 600; letter-spacing: 0.12em;
+      font-size: 10px; font-weight: 700; letter-spacing: 0.14em;
       text-transform: uppercase; color: var(--text-muted);
     }
 
     /* ── Monospace text ── */
     .mono { font-family: var(--font-mono); }
 
+    /* ── Glow text ── */
+    .glow-blue    { color: var(--blue);    text-shadow: 0 0 30px rgba(79,127,255,0.5); }
+    .glow-emerald { color: var(--emerald); text-shadow: 0 0 30px rgba(16,212,138,0.4); }
+
+    /* ── Toast — slides from right with countdown ── */
+    @keyframes slide-in-right {
+      from { transform: translateX(110%); opacity: 0; }
+      to   { transform: translateX(0);   opacity: 1; }
+    }
+    @keyframes slide-out-right {
+      from { transform: translateX(0);   opacity: 1; }
+      to   { transform: translateX(110%); opacity: 0; }
+    }
+    @keyframes toast-countdown {
+      from { width: 100%; }
+      to   { width: 0%; }
+    }
+
+    .toast {
+      background: rgba(15,15,23,0.95);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid var(--border-mid);
+      border-radius: var(--radius-lg);
+      padding: 14px 18px 18px;
+      display: flex; align-items: flex-start; gap: 12px;
+      font-size: 13px; max-width: 380px;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04) inset;
+      animation: slide-in-right 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      position: relative; overflow: hidden;
+    }
+    .toast-progress-bar {
+      position: absolute; bottom: 0; left: 0; height: 2px;
+      border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+      animation: toast-countdown 4.5s linear forwards;
+    }
+    .toast-success { border-left: 3px solid var(--emerald); }
+    .toast-success .toast-progress-bar { background: var(--emerald); }
+    .toast-error   { border-left: 3px solid var(--rose); }
+    .toast-error .toast-progress-bar   { background: var(--rose); }
+    .toast-info    { border-left: 3px solid var(--blue); }
+    .toast-info .toast-progress-bar    { background: var(--blue); }
+
+    /* ── RECOMMENDED badge — shimmering ── */
+    @keyframes rec-shimmer {
+      0%, 100% { opacity: 1; box-shadow: 0 0 8px rgba(16,212,138,0.35); }
+      50%       { opacity: 0.85; box-shadow: 0 0 16px rgba(16,212,138,0.55); }
+    }
+    .badge-recommended {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 9.5px; font-weight: 800; letter-spacing: 0.1em;
+      text-transform: uppercase;
+      background: rgba(16,212,138,0.15);
+      color: var(--emerald);
+      border: 1px solid rgba(16,212,138,0.35);
+      border-radius: 99px;
+      padding: 2px 9px;
+      animation: rec-shimmer 2s ease-in-out infinite;
+    }
+
     /* ── Animations ── */
     @keyframes fade-in {
-      from { opacity: 0; transform: translateY(10px); }
+      from { opacity: 0; transform: translateY(12px); }
       to   { opacity: 1; transform: translateY(0); }
     }
-    .fade-in { animation: fade-in 0.4s ease forwards; }
+    .fade-in { animation: fade-in 0.45s ease forwards; }
 
     @keyframes spin {
       to { transform: rotate(360deg); }
@@ -300,10 +549,46 @@
 
     /* ── Live feed item ── */
     @keyframes pop-in {
-      from { opacity: 0; transform: scale(0.95); }
-      to   { opacity: 1; transform: scale(1); }
+      from { opacity: 0; transform: translateX(-8px); }
+      to   { opacity: 1; transform: translateX(0); }
     }
-    .feed-item { animation: pop-in 0.15s ease; }
+    .feed-item { animation: pop-in 0.18s ease; }
+
+    /* ── Hero floating orb ── */
+    @keyframes orb-float {
+      0%, 100% { transform: translateY(0px) scale(1); }
+      50%       { transform: translateY(-6px) scale(1.02); }
+    }
+    .hero-orb {
+      animation: orb-float 5s ease-in-out infinite;
+    }
+
+    /* ── Card hover lift ── */
+    .server-card {
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+    }
+    .server-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+    }
+
+    /* ── Section divider ── */
+    .tier-section-divider {
+      display: flex; align-items: center; gap: 16px; margin-bottom: 18px;
+    }
+    .tier-section-divider::after {
+      content: ''; flex: 1; height: 1px;
+      background: linear-gradient(90deg, var(--border-mid), transparent);
+    }
+
+    /* ── Recommendation banner ── */
+    @keyframes banner-glow {
+      0%, 100% { box-shadow: 0 0 20px rgba(16,212,138,0.12), 0 4px 24px rgba(0,0,0,0.4); }
+      50%       { box-shadow: 0 0 32px rgba(16,212,138,0.2),  0 4px 32px rgba(0,0,0,0.5); }
+    }
+    .rec-banner {
+      animation: banner-glow 3s ease-in-out infinite;
+    }
   </style>
 </head>
 <body>
@@ -326,7 +611,11 @@ const statusMeta = {
 
 function StatusBadge({ status }) {
   const m = statusMeta[status] || statusMeta.PROBE_ERROR;
-  return <span className={`badge ${m.cls}`}>{m.icon} {m.label}</span>;
+  return (
+    <span className={`badge ${m.cls}`}>
+      {m.label}
+    </span>
+  );
 }
 
 function Spinner({ size = 16 }) {
@@ -342,8 +631,9 @@ function LatencyPill({ ms, dim }) {
   if (ms == null) return <span style={{ color: "#3a3a50", fontFamily: "var(--font-mono)", fontSize: 11 }}>—</span>;
   const color = ms < 100 ? "#10d48a" : ms < 300 ? "#f59e0b" : "#f43f5e";
   return (
-    <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: dim ? "#55556a" : color }}>
-      {Math.round(ms)}ms
+    <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: dim ? "#55556a" : color,
+      fontWeight: 500 }}>
+      {Math.round(ms)}<span style={{ opacity: 0.5, fontSize: 9 }}>ms</span>
     </span>
   );
 }
@@ -359,10 +649,14 @@ function Toast({ toast, onClose }) {
   const color = toast.type === "success" ? "var(--emerald)" : toast.type === "error" ? "var(--rose)" : "var(--blue)";
   return (
     <div className={`toast ${cls}`}>
-      <span style={{ color, fontWeight: 700, fontSize: 15 }}>{icon}</span>
-      <span style={{ color: "var(--text-primary)" }}>{toast.message}</span>
-      <button onClick={onClose} style={{ marginLeft: "auto", background: "none", border: "none",
-        color: "var(--text-muted)", cursor: "pointer", fontSize: 16, lineHeight: 1 }}>×</button>
+      <span style={{ color, fontWeight: 800, fontSize: 15, flexShrink: 0, marginTop: 1 }}>{icon}</span>
+      <span style={{ color: "var(--text-primary)", lineHeight: 1.5, flex: 1 }}>{toast.message}</span>
+      <button onClick={onClose} style={{ background: "none", border: "none",
+        color: "var(--text-muted)", cursor: "pointer", fontSize: 18, lineHeight: 1,
+        flexShrink: 0, marginTop: -2, opacity: 0.7, transition: "opacity 0.15s" }}
+        onMouseEnter={e => e.target.style.opacity = "1"}
+        onMouseLeave={e => e.target.style.opacity = "0.7"}>×</button>
+      <div className="toast-progress-bar" />
     </div>
   );
 }
@@ -397,58 +691,76 @@ function LandingScreen({ config, onStartBenchmark, onReset, isResetting }) {
 
   return (
     <div className="content" style={{ minHeight: "100vh", display: "flex", flexDirection: "column",
-      alignItems: "center", justifyContent: "center", padding: "32px 16px" }}>
+      alignItems: "center", justifyContent: "center", padding: "48px 16px" }}>
 
-      {/* Logo / Hero */}
-      <div style={{ textAlign: "center", marginBottom: 52 }}>
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 10, background: "var(--blue-dim)",
-            border: "1px solid rgba(79,127,255,0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" strokeWidth="2" strokeLinecap="round">
-              <circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20"/>
-              <path d="M2 12h20"/><path d="M12 2c2 3 4 7 4 10s-2 7-4 10"/>
+      {/* Hero section */}
+      <div style={{ textAlign: "center", marginBottom: 64 }}>
+
+        {/* Logo mark */}
+        <div className="hero-orb" style={{ display: "inline-flex", alignItems: "center",
+          justifyContent: "center", marginBottom: 28 }}>
+          <div style={{
+            width: 72, height: 72, borderRadius: 20,
+            background: "linear-gradient(135deg, rgba(79,127,255,0.15) 0%, rgba(16,212,138,0.08) 100%)",
+            border: "1px solid rgba(79,127,255,0.35)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            boxShadow: "0 0 0 8px rgba(79,127,255,0.06), 0 0 0 16px rgba(79,127,255,0.03), 0 0 40px rgba(79,127,255,0.2)"
+          }}>
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" strokeWidth="1.8" strokeLinecap="round">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 2a14.5 14.5 0 0 0 0 20"/>
+              <path d="M2 12h20"/>
+              <path d="M12 2c2 3 4 7 4 10s-2 7-4 10"/>
             </svg>
           </div>
-          <div>
-            <div style={{ fontSize: 11, color: "var(--text-muted)", letterSpacing: "0.14em",
-              textTransform: "uppercase", fontWeight: 600, marginBottom: 1 }}>
-              Network Intelligence
-            </div>
-            <div style={{ fontSize: 24, fontWeight: 700, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>
-              DNS Benchmarker
-            </div>
-          </div>
         </div>
-        <p style={{ color: "var(--text-secondary)", fontSize: 14, maxWidth: 420, lineHeight: 1.7 }}>
+
+        <div style={{ marginBottom: 8 }}>
+          <span className="section-eyebrow" style={{ color: "var(--blue)", opacity: 0.9 }}>
+            Network Intelligence
+          </span>
+        </div>
+
+        <h1 style={{ fontSize: 42, fontWeight: 700, letterSpacing: "-0.04em",
+          lineHeight: 1.1, marginBottom: 16,
+          background: "linear-gradient(135deg, #f0f0ff 0%, #a8b8ff 50%, #10d48a 100%)",
+          WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+          backgroundClip: "text" }}>
+          DNS Benchmarker
+        </h1>
+
+        <p style={{ color: "var(--text-secondary)", fontSize: 15, maxWidth: 440,
+          lineHeight: 1.75, margin: "0 auto" }}>
           Audit DNS resolvers for bypass capability across sanctioned domains.
           Tier-ranked results with one-click system DNS application.
         </p>
       </div>
 
       {/* Main card */}
-      <div className="card-glass" style={{ width: "100%", maxWidth: 560, padding: 32 }}>
+      <div className="card-glass" style={{ width: "100%", maxWidth: 580, padding: "36px 36px 32px" }}>
 
         {/* Stats row */}
         {config && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 28 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 32 }}>
             {[
               { label: "DNS Servers", value: totalServers, accent: "var(--blue)" },
               { label: "Target Domains", value: config.dns_servers ? config.target_domains.length : 7, accent: "var(--violet)" },
               { label: "Total Probes", value: totalServers * (config.target_domains?.length || 7), accent: "var(--emerald)" },
             ].map(s => (
-              <div key={s.label} className="stat-box">
-                <div style={{ fontSize: 22, fontWeight: 700, color: s.accent, fontFamily: "var(--font-mono)" }}>
+              <div key={s.label} className="stat-box" style={{ padding: "14px 12px" }}>
+                <div style={{ fontSize: 26, fontWeight: 700, color: s.accent,
+                  fontFamily: "var(--font-mono)", lineHeight: 1, marginBottom: 6 }}>
                   {s.value}
                 </div>
-                <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{s.label}</div>
+                <div style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 500 }}>{s.label}</div>
               </div>
             ))}
           </div>
         )}
 
         {/* Custom server input */}
-        <div style={{ marginBottom: 24 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+        <div style={{ marginBottom: 28 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
             <span className="section-eyebrow">Custom DNS Servers</span>
             <button className="btn btn-ghost btn-sm"
               onClick={() => setAddingCustom(!addingCustom)}>
@@ -457,9 +769,12 @@ function LandingScreen({ config, onStartBenchmark, onReset, isResetting }) {
           </div>
 
           {addingCustom && (
-            <div className="fade-in" style={{ background: "var(--bg-surface)", border: "1px solid var(--border-mid)",
-              borderRadius: "var(--radius)", padding: 16, marginBottom: 12 }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr 1.4fr", gap: 8, marginBottom: 10 }}>
+            <div className="fade-in" style={{
+              background: "rgba(255,255,255,0.03)",
+              border: "1px solid var(--border-mid)",
+              borderRadius: "var(--radius-lg)", padding: 18, marginBottom: 14,
+              boxShadow: "0 4px 24px rgba(0,0,0,0.3)" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr 1.4fr", gap: 10, marginBottom: 12 }}>
                 <input className="input" placeholder="Name (optional)" value={customInput.name}
                   onChange={e => setCustomInput(p => ({ ...p, name: e.target.value }))} />
                 <input className="input" placeholder="Primary IP *" value={customInput.ip}
@@ -467,40 +782,50 @@ function LandingScreen({ config, onStartBenchmark, onReset, isResetting }) {
                 <input className="input" placeholder="Secondary IP" value={customInput.secondary_ip}
                   onChange={e => setCustomInput(p => ({ ...p, secondary_ip: e.target.value }))} />
               </div>
-              {ipError && <div style={{ color: "var(--rose)", fontSize: 12, marginBottom: 8 }}>⚠ {ipError}</div>}
+              {ipError && (
+                <div style={{ color: "var(--rose)", fontSize: 12, marginBottom: 10,
+                  display: "flex", alignItems: "center", gap: 6 }}>
+                  <span>⚠</span> {ipError}
+                </div>
+              )}
               <button className="btn btn-primary btn-sm" onClick={addCustomServer}>Add to Benchmark</button>
             </div>
           )}
 
           {customServers.length > 0 && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {customServers.map((s, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 12px",
-                  background: "var(--bg-input)", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)" }}>
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 14px",
+                  background: "rgba(79,127,255,0.06)", border: "1px solid rgba(79,127,255,0.18)",
+                  borderRadius: "var(--radius)", transition: "background 0.2s" }}>
                   <div style={{ flex: 1 }}>
-                    <span style={{ color: "var(--text-primary)", fontSize: 13, fontWeight: 500 }}>{s.name}</span>
-                    <span className="mono" style={{ color: "var(--text-muted)", fontSize: 11, marginLeft: 10 }}>
+                    <span style={{ color: "var(--text-primary)", fontSize: 13, fontWeight: 600 }}>{s.name}</span>
+                    <span className="mono" style={{ color: "var(--text-muted)", fontSize: 11, marginLeft: 12 }}>
                       {s.ip}{s.secondary_ip ? ` + ${s.secondary_ip}` : ""}
                     </span>
                   </div>
                   <button onClick={() => setCustomServers(prev => prev.filter((_, j) => j !== i))}
-                    style={{ background: "none", border: "none", color: "var(--rose)", cursor: "pointer", fontSize: 15, lineHeight: 1, opacity: 0.7 }}>×</button>
+                    style={{ background: "none", border: "none", color: "var(--rose)", cursor: "pointer",
+                      fontSize: 17, lineHeight: 1, opacity: 0.65, transition: "opacity 0.15s" }}
+                    onMouseEnter={e => e.target.style.opacity = "1"}
+                    onMouseLeave={e => e.target.style.opacity = "0.65"}>×</button>
                 </div>
               ))}
             </div>
           )}
 
           {customServers.length === 0 && !addingCustom && (
-            <div style={{ color: "var(--text-dim)", fontSize: 12, padding: "8px 0" }}>
+            <div style={{ color: "var(--text-dim)", fontSize: 12, padding: "6px 0",
+              fontStyle: "italic" }}>
               Using {config?.dns_servers?.length || 6} built-in servers. Add custom IPs above.
             </div>
           )}
         </div>
 
-        <div className="sep" style={{ marginBottom: 24 }} />
+        <div className="sep" style={{ marginBottom: 28 }} />
 
         {/* Action buttons */}
-        <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ display: "flex", gap: 12 }}>
           <button className="btn btn-primary btn-lg" style={{ flex: 1 }}
             onClick={() => onStartBenchmark(customServers)}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -509,7 +834,7 @@ function LandingScreen({ config, onStartBenchmark, onReset, isResetting }) {
             Run Benchmark
           </button>
           <button className="btn btn-ghost btn-lg" onClick={onReset} disabled={isResetting}
-            style={{ minWidth: 160 }}>
+            style={{ minWidth: 168 }}>
             {isResetting ? <><Spinner size={14} /> Resetting…</> : <>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>
@@ -521,13 +846,18 @@ function LandingScreen({ config, onStartBenchmark, onReset, isResetting }) {
 
         {/* OS / admin status */}
         {config && (
-          <div style={{ display: "flex", gap: 10, marginTop: 16, justifyContent: "center" }}>
+          <div style={{ display: "flex", gap: 12, marginTop: 20, justifyContent: "center",
+            alignItems: "center" }}>
             <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
               OS: <span className="mono" style={{ color: "var(--text-secondary)" }}>{config.os}</span>
             </span>
             <span style={{ color: "var(--text-dim)" }}>·</span>
-            <span style={{ fontSize: 11, color: config.is_admin ? "var(--emerald)" : "var(--amber)" }}>
-              {config.is_admin ? "✓ Admin privileges active" : "⚠ Not running as admin — DNS apply disabled"}
+            <span style={{ fontSize: 11, color: config.is_admin ? "var(--emerald)" : "var(--amber)",
+              display: "flex", alignItems: "center", gap: 5 }}>
+              <span style={{ display: "inline-block", width: 5, height: 5, borderRadius: "50%",
+                background: config.is_admin ? "var(--emerald)" : "var(--amber)",
+                boxShadow: config.is_admin ? "0 0 6px var(--emerald)" : "0 0 6px var(--amber)" }} />
+              {config.is_admin ? "Admin privileges active" : "Not running as admin — DNS apply disabled"}
             </span>
           </div>
         )}
@@ -535,11 +865,23 @@ function LandingScreen({ config, onStartBenchmark, onReset, isResetting }) {
 
       {/* Domain list preview */}
       {config?.target_domains && (
-        <div style={{ marginTop: 28, display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center",
-          maxWidth: 560 }}>
+        <div style={{ marginTop: 36, display: "flex", flexWrap: "wrap", gap: 8,
+          justifyContent: "center", maxWidth: 580 }}>
           {config.target_domains.map(d => (
             <span key={d} className="mono" style={{ fontSize: 11, color: "var(--text-muted)",
-              background: "rgba(255,255,255,0.04)", border: "1px solid var(--border)", borderRadius: 4, padding: "3px 8px" }}>
+              background: "rgba(255,255,255,0.04)", border: "1px solid var(--border)",
+              borderRadius: 99, padding: "4px 10px", transition: "all 0.15s",
+              cursor: "default" }}
+              onMouseEnter={e => {
+                e.target.style.background = "rgba(255,255,255,0.07)";
+                e.target.style.color = "var(--text-secondary)";
+                e.target.style.borderColor = "var(--border-mid)";
+              }}
+              onMouseLeave={e => {
+                e.target.style.background = "rgba(255,255,255,0.04)";
+                e.target.style.color = "var(--text-muted)";
+                e.target.style.borderColor = "var(--border)";
+              }}>
               {d}
             </span>
           ))}
@@ -560,30 +902,41 @@ function BenchmarkScreen({ progress }) {
 
   return (
     <div className="content" style={{ minHeight: "100vh", display: "flex", flexDirection: "column",
-      alignItems: "center", justifyContent: "center", padding: "32px 16px" }}>
-      <div style={{ width: "100%", maxWidth: 640 }}>
+      alignItems: "center", justifyContent: "center", padding: "48px 16px" }}>
+      <div style={{ width: "100%", maxWidth: 660 }}>
 
         {/* Header */}
-        <div style={{ textAlign: "center", marginBottom: 40 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 12 }}>
+        <div style={{ textAlign: "center", marginBottom: 52 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center",
+            gap: 12, marginBottom: 20 }}>
             <div className="pulse-dot" style={{ background: "var(--blue)" }} />
-            <span style={{ color: "var(--blue)", fontWeight: 600, fontSize: 13, letterSpacing: "0.05em" }}>
-              BENCHMARKING
+            <span style={{ color: "var(--blue)", fontWeight: 700, fontSize: 12,
+              letterSpacing: "0.12em", textTransform: "uppercase" }}>
+              Benchmarking
             </span>
           </div>
-          <div style={{ fontSize: 36, fontWeight: 700, letterSpacing: "-0.03em", marginBottom: 6 }}>
-            <span className="glow-blue mono">{pct}%</span>
-            <span style={{ color: "var(--text-muted)", fontSize: 18, fontWeight: 400, marginLeft: 4 }}>complete</span>
+
+          <div style={{ fontSize: 72, fontWeight: 700, letterSpacing: "-0.04em",
+            lineHeight: 1, marginBottom: 10 }}>
+            <span className="glow-blue mono">{pct}</span>
+            <span style={{ color: "var(--text-muted)", fontSize: 28, fontWeight: 400 }}>%</span>
           </div>
+          <div style={{ color: "var(--text-muted)", fontSize: 13 }}>complete</div>
         </div>
 
-        {/* Progress track */}
-        <div className="progress-track" style={{ marginBottom: 28 }}>
-          <div className="progress-fill" style={{ width: `${pct}%` }} />
+        {/* Progress track — dramatic */}
+        <div style={{ marginBottom: 40 }}>
+          <div className="progress-track">
+            <div className="progress-fill" style={{ width: `${pct}%` }} />
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
+            <span style={{ fontSize: 11, color: "var(--text-dim)" }}>{completed} probes sent</span>
+            <span style={{ fontSize: 11, color: "var(--text-dim)" }}>{total - completed} remaining</span>
+          </div>
         </div>
 
         {/* Stats row */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 32 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 36 }}>
           {[
             { label: "Probes", value: `${completed} / ${total}` },
             { label: "Elapsed", value: `${elapsed_s}s` },
@@ -591,37 +944,44 @@ function BenchmarkScreen({ progress }) {
             { label: "ETA", value: remaining === "—" ? "—" : `~${remaining}s` },
           ].map(s => (
             <div key={s.label} className="stat-box">
-              <div className="mono" style={{ fontSize: 18, fontWeight: 600, color: "var(--text-primary)" }}>{s.value}</div>
-              <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{s.label}</div>
+              <div className="mono" style={{ fontSize: 19, fontWeight: 700,
+                color: "var(--text-primary)", lineHeight: 1, marginBottom: 6 }}>{s.value}</div>
+              <div style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 500 }}>{s.label}</div>
             </div>
           ))}
         </div>
 
         {/* Live feed */}
-        <div className="card" style={{ overflow: "hidden" }}>
-          <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", display: "flex",
-            alignItems: "center", gap: 8 }}>
+        <div className="card" style={{ overflow: "hidden",
+          background: "rgba(13,13,22,0.8)", backdropFilter: "blur(16px)" }}>
+          <div style={{ padding: "13px 18px", borderBottom: "1px solid var(--border)",
+            display: "flex", alignItems: "center", gap: 10 }}>
             <Spinner size={13} />
-            <span style={{ fontSize: 12, color: "var(--text-secondary)", fontWeight: 500 }}>Live Probe Feed</span>
-            <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--text-dim)" }}>Latest 8 results</span>
+            <span style={{ fontSize: 12, color: "var(--text-secondary)", fontWeight: 600,
+              letterSpacing: "0.02em" }}>Live Probe Feed</span>
+            <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--text-dim)" }}>
+              Latest 8 results
+            </span>
           </div>
-          <div style={{ padding: "8px 0", minHeight: 200 }}>
+          <div style={{ minHeight: 220 }}>
             {recentProbes.length === 0 ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 10,
-                  padding: "8px 16px" }}>
-                  <div className="skeleton" style={{ width: 60, height: 12 }} />
-                  <div className="skeleton" style={{ width: 130, height: 12 }} />
+              Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 12,
+                  padding: "10px 18px", borderBottom: "1px solid var(--border)" }}>
+                  <div className="skeleton" style={{ width: 64, height: 11, borderRadius: 99 }} />
+                  <div className="skeleton" style={{ width: 140, height: 11, borderRadius: 99 }} />
                   <div style={{ marginLeft: "auto" }}>
-                    <div className="skeleton" style={{ width: 72, height: 18 }} />
+                    <div className="skeleton" style={{ width: 76, height: 20, borderRadius: 99 }} />
                   </div>
                 </div>
               ))
             ) : (
               recentProbes.slice(-8).reverse().map((p, i) => (
-                <div key={i} className="feed-item" style={{ display: "flex", alignItems: "center", gap: 10,
-                  padding: "7px 16px", borderBottom: "1px solid var(--border)", fontSize: 12 }}>
-                  <span className="mono" style={{ color: "var(--text-muted)", minWidth: 70 }}>{p.server_name}</span>
+                <div key={i} className="feed-item" style={{ display: "flex", alignItems: "center",
+                  gap: 12, padding: "8px 18px", borderBottom: "1px solid var(--border)", fontSize: 12,
+                  background: i === 0 ? "rgba(79,127,255,0.04)" : "transparent" }}>
+                  <span className="mono" style={{ color: "var(--blue)", minWidth: 80,
+                    fontWeight: 500, fontSize: 11 }}>{p.server_name}</span>
                   <span style={{ color: "var(--text-secondary)", flex: 1, overflow: "hidden",
                     textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.domain}</span>
                   <LatencyPill ms={p.dns_latency_ms} dim={!p.dns_success} />
@@ -650,51 +1010,60 @@ function TierServerCard({ info, isAdmin, onApplyDNS, onFlushCache, applying, isR
   const domains = Object.entries(info.per_domain || {});
 
   return (
-    <div className={`card ${tierClass} fade-in`} style={{ marginBottom: 12, overflow: "visible" }}>
+    <div className={`card ${tierClass} server-card fade-in`}
+      style={{ marginBottom: 14, overflow: "visible",
+        boxShadow: info.tier === "A"
+          ? "0 4px 32px rgba(16,212,138,0.08)"
+          : "0 4px 24px rgba(0,0,0,0.3)" }}>
+
       {/* Card header */}
-      <div style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: 14 }}>
-        <span className={`tier-label ${tierLabelClass}`}>
+      <div style={{ padding: "18px 22px", display: "flex", alignItems: "center", gap: 16 }}>
+
+        {/* Tier badge */}
+        <div className={`tier-label ${tierLabelClass}`}>
           {info.tier}
-        </span>
-        <div style={{ flex: 1 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
-            <span style={{ fontWeight: 600, fontSize: 15 }}>{info.name}</span>
+        </div>
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 5, flexWrap: "wrap" }}>
+            <span style={{ fontWeight: 700, fontSize: 16 }}>{info.name}</span>
             {isRecommended && (
-              <span style={{ fontSize: 10, background: "var(--emerald-dim)", color: "var(--emerald)",
-                border: "1px solid rgba(16,212,138,0.25)", borderRadius: 4, padding: "1px 6px",
-                fontWeight: 600, letterSpacing: "0.06em" }}>RECOMMENDED</span>
+              <span className="badge-recommended">⭐ Recommended</span>
             )}
           </div>
           <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-            <span className="mono" style={{ color: "var(--text-muted)", fontSize: 12 }}>{info.ip}</span>
+            <span className="mono" style={{ color: "var(--text-secondary)", fontSize: 12 }}>{info.ip}</span>
             {info.secondary_ip && (
               <span className="mono" style={{ color: "var(--text-dim)", fontSize: 11 }}>
                 +{info.secondary_ip}
               </span>
             )}
-            <span style={{ fontSize: 12, color: "var(--text-muted)" }}>·</span>
-            <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>{tierDesc}</span>
+            <span style={{ fontSize: 12, color: "var(--text-dim)" }}>·</span>
+            <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{tierDesc}</span>
           </div>
         </div>
 
         {/* Perf stats */}
         <div style={{ display: "flex", gap: 8, marginRight: 8 }}>
-          <div className="stat-box" style={{ minWidth: 56 }}>
-            <div className="mono" style={{ fontSize: 13, fontWeight: 600,
-              color: info.avg_dns_ms < 100 ? "var(--emerald)" : info.avg_dns_ms < 300 ? "var(--amber)" : "var(--rose)" }}>
+          <div className="stat-box" style={{ minWidth: 60, padding: "10px 12px" }}>
+            <div className="mono" style={{ fontSize: 14, fontWeight: 700,
+              color: info.avg_dns_ms < 100 ? "var(--emerald)" : info.avg_dns_ms < 300 ? "var(--amber)" : "var(--rose)",
+              lineHeight: 1, marginBottom: 5 }}>
               {Math.round(info.avg_dns_ms)}
             </div>
             <div style={{ fontSize: 10, color: "var(--text-muted)" }}>DNS ms</div>
           </div>
-          <div className="stat-box" style={{ minWidth: 56 }}>
-            <div className="mono" style={{ fontSize: 13, fontWeight: 600, color: "var(--text-secondary)" }}>
+          <div className="stat-box" style={{ minWidth: 60, padding: "10px 12px" }}>
+            <div className="mono" style={{ fontSize: 14, fontWeight: 700,
+              color: "var(--text-secondary)", lineHeight: 1, marginBottom: 5 }}>
               {info.avg_http_ms > 0 ? Math.round(info.avg_http_ms) : "—"}
             </div>
             <div style={{ fontSize: 10, color: "var(--text-muted)" }}>HTTP ms</div>
           </div>
-          <div className="stat-box" style={{ minWidth: 48 }}>
-            <div className="mono" style={{ fontSize: 13, fontWeight: 600,
-              color: info.tier === "A" ? "var(--emerald)" : info.tier === "B" ? "var(--amber)" : "var(--rose)" }}>
+          <div className="stat-box" style={{ minWidth: 54, padding: "10px 12px" }}>
+            <div className="mono" style={{ fontSize: 14, fontWeight: 700,
+              color: info.tier === "A" ? "var(--emerald)" : info.tier === "B" ? "var(--amber)" : "var(--rose)",
+              lineHeight: 1, marginBottom: 5 }}>
               {info.bypass_pct}%
             </div>
             <div style={{ fontSize: 10, color: "var(--text-muted)" }}>Bypass</div>
@@ -735,7 +1104,7 @@ function TierServerCard({ info, isAdmin, onApplyDNS, onFlushCache, applying, isR
             style={{ padding: "6px 10px" }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               strokeWidth="2" strokeLinecap="round"
-              style={{ transform: expanded ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>
+              style={{ transform: expanded ? "rotate(180deg)" : "none", transition: "transform 0.22s" }}>
               <polyline points="6 9 12 15 18 9"/>
             </svg>
           </button>
@@ -744,32 +1113,37 @@ function TierServerCard({ info, isAdmin, onApplyDNS, onFlushCache, applying, isR
 
       {/* Domain breakdown */}
       {expanded && (
-        <div style={{ padding: "0 20px 14px", borderTop: "1px solid var(--border)" }}>
-          <div style={{ paddingTop: 12 }}>
+        <div style={{ borderTop: "1px solid var(--border)" }}>
+          <div style={{ padding: "10px 8px 12px" }}>
             {domains.map(([domain, data]) => (
               <div key={domain} className="domain-row">
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: 13,
-                    color: data.status === "BYPASS" ? "var(--emerald)" : "var(--text-muted)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                  <span style={{ fontSize: 12, flexShrink: 0, width: 16, textAlign: "center",
+                    color: data.status === "BYPASS" ? "var(--emerald)"
+                         : data.status === "BLOCKED" || data.status === "DNS_FAILED" ? "var(--rose)"
+                         : data.status === "SANCTIONED" ? "var(--amber)" : "var(--text-muted)" }}>
                     {data.status === "BYPASS" ? "✓" :
                      data.status === "BLOCKED" || data.status === "DNS_FAILED" ? "✕" :
                      data.status === "SANCTIONED" ? "⊘" : "⚠"}
                   </span>
-                  <span className="mono" style={{ fontSize: 12, color: "var(--text-secondary)" }}>{domain}</span>
+                  <span className="mono" style={{ fontSize: 12, color: "var(--text-secondary)",
+                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {domain}
+                  </span>
                 </div>
-                <span className="mono" style={{ fontSize: 11, color: "var(--text-dim)" }}>
+                <span className="mono" style={{ fontSize: 10.5, color: "var(--text-dim)" }}>
                   {data.resolved_ip || "—"}
                 </span>
-                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                <div style={{ display: "flex", gap: 6, alignItems: "center", justifyContent: "flex-end" }}>
                   <LatencyPill ms={data.dns_ms} dim={data.status === "DNS_FAILED"} />
                   {data.http_ms != null && <>
                     <span style={{ color: "var(--text-dim)", fontSize: 10 }}>·</span>
                     <LatencyPill ms={data.http_ms} />
                   </>}
                 </div>
-                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                <div style={{ display: "flex", gap: 6, alignItems: "center", justifyContent: "flex-end" }}>
                   {data.http_code && (
-                    <span className="mono" style={{ fontSize: 11,
+                    <span className="mono" style={{ fontSize: 10.5,
                       color: [200,301,302,303,307,308].includes(data.http_code) ? "var(--emerald)"
                            : [403,451].includes(data.http_code) ? "var(--amber)" : "var(--rose)" }}>
                       {data.http_code}
@@ -799,21 +1173,23 @@ function ResultsScreen({ results, elapsed, onRerun, onReset, isAdmin, onApplyDNS
   const best = tiers.a[0] || tiers.b[0];
 
   return (
-    <div className="content" style={{ maxWidth: 920, margin: "0 auto", padding: "32px 16px 64px" }}>
+    <div className="content" style={{ maxWidth: 960, margin: "0 auto", padding: "48px 20px 80px" }}>
 
       {/* Header */}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between",
-        marginBottom: 32, flexWrap: "wrap", gap: 16 }}>
+        marginBottom: 40, flexWrap: "wrap", gap: 20 }}>
         <div>
-          <div className="section-eyebrow" style={{ marginBottom: 6 }}>Benchmark Complete</div>
-          <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: "-0.03em", marginBottom: 4 }}>
+          <div className="section-eyebrow" style={{ marginBottom: 8, color: "var(--emerald)" }}>
+            Benchmark Complete
+          </div>
+          <h1 style={{ fontSize: 30, fontWeight: 700, letterSpacing: "-0.03em", marginBottom: 6 }}>
             DNS Performance Report
           </h1>
           <p style={{ color: "var(--text-muted)", fontSize: 13 }}>
             {totalProbes} probes across {results.length} servers — completed in {elapsed}s
           </p>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 10 }}>
           <button className="btn btn-ghost" onClick={onReset} disabled={isResetting}>
             {isResetting ? <><Spinner size={13} /> Resetting…</> : <>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -838,49 +1214,73 @@ function ResultsScreen({ results, elapsed, onRerun, onReset, isAdmin, onApplyDNS
       </div>
 
       {/* Summary stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 32 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 36 }}>
         {[
           { label: "Tier A Servers", value: tiers.a.length, color: "var(--emerald)", desc: "Full bypass" },
           { label: "Tier B Servers", value: tiers.b.length, color: "var(--amber)", desc: "Partial bypass" },
           { label: "Tier F Servers", value: tiers.f.length, color: "var(--rose)", desc: "No bypass" },
           { label: "Overall Bypass", value: `${Math.round(totalBypass/totalProbes*100)}%`,
-            color: totalBypass/totalProbes > 0.5 ? "var(--emerald)" : "var(--amber)", desc: `${totalBypass}/${totalProbes} probes` },
+            color: totalBypass/totalProbes > 0.5 ? "var(--emerald)" : "var(--amber)",
+            desc: `${totalBypass}/${totalProbes} probes` },
         ].map(s => (
-          <div key={s.label} className="card" style={{ padding: "16px 20px" }}>
-            <div style={{ fontSize: 26, fontWeight: 700, color: s.color, fontFamily: "var(--font-mono)", marginBottom: 2 }}>
+          <div key={s.label} className="card" style={{ padding: "20px 22px" }}>
+            <div style={{ fontSize: 30, fontWeight: 800, color: s.color,
+              fontFamily: "var(--font-mono)", marginBottom: 6, lineHeight: 1 }}>
               {s.value}
             </div>
-            <div style={{ fontSize: 13, color: "var(--text-secondary)", fontWeight: 500 }}>{s.label}</div>
-            <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{s.desc}</div>
+            <div style={{ fontSize: 13, color: "var(--text-secondary)", fontWeight: 600,
+              marginBottom: 3 }}>{s.label}</div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{s.desc}</div>
           </div>
         ))}
       </div>
 
       {/* Best recommendation banner */}
       {best && (
-        <div style={{ marginBottom: 28, padding: "14px 20px",
-          background: "linear-gradient(90deg, rgba(16,212,138,0.08) 0%, rgba(79,127,255,0.05) 100%)",
-          border: "1px solid rgba(16,212,138,0.2)", borderRadius: "var(--radius-lg)",
-          display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-          <div style={{ fontSize: 13, color: "var(--emerald)" }}>🏆</div>
+        <div className="rec-banner" style={{ marginBottom: 36, padding: "18px 24px",
+          background: "linear-gradient(100deg, rgba(16,212,138,0.09) 0%, rgba(79,127,255,0.06) 100%)",
+          border: "1px solid rgba(16,212,138,0.22)",
+          borderRadius: "var(--radius-xl)",
+          display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+          <div style={{ fontSize: 22 }}>🏆</div>
           <div style={{ flex: 1 }}>
-            <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>Recommended: </span>
-            <span style={{ color: "var(--emerald)", fontWeight: 600 }}>{best.name}</span>
-            <span className="mono" style={{ color: "var(--text-muted)", marginLeft: 8, fontSize: 12 }}>{best.ip}</span>
-            <span style={{ color: "var(--text-muted)", marginLeft: 8, fontSize: 12 }}>
-              · {best.bypass_count}/{best.total_count} domains · avg {Math.round(best.avg_dns_ms)}ms DNS
-            </span>
+            <div style={{ fontSize: 12, color: "var(--emerald)", fontWeight: 700,
+              letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 3 }}>
+              Recommended Server
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <span style={{ fontWeight: 700, color: "var(--text-primary)", fontSize: 16 }}>{best.name}</span>
+              <span className="mono" style={{ color: "var(--text-muted)", fontSize: 12 }}>{best.ip}</span>
+              <span style={{ color: "var(--text-dim)" }}>·</span>
+              <span style={{ color: "var(--text-muted)", fontSize: 12 }}>
+                {best.bypass_count}/{best.total_count} domains
+              </span>
+              <span style={{ color: "var(--text-dim)" }}>·</span>
+              <span style={{ color: "var(--text-muted)", fontSize: 12 }}>
+                avg {Math.round(best.avg_dns_ms)}ms DNS
+              </span>
+            </div>
           </div>
           <button
-            className={`btn btn-sm ${isAdmin ? "btn-emerald" : "btn-ghost"}`}
+            className={`btn ${isAdmin ? "btn-emerald" : "btn-ghost"}`}
             disabled={applying === best.name}
             onClick={() => onApplyDNS(best)}
             title={!isAdmin ? "Not running as admin — click to see instructions" : `Apply ${best.ip} as system DNS`}>
             {applying === best.name
               ? <><Spinner size={12} /> Applying…</>
               : !isAdmin
-              ? "🔒 Apply Now"
-              : "⚡ Apply Now"
+              ? <>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                  </svg>
+                  Apply Now
+                </>
+              : <>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                  </svg>
+                  Apply Now
+                </>
             }
           </button>
         </div>
@@ -888,12 +1288,14 @@ function ResultsScreen({ results, elapsed, onRerun, onReset, isAdmin, onApplyDNS
 
       {/* Tier A */}
       {tiers.a.length > 0 && (
-        <div style={{ marginBottom: 28 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-            <span className="tier-label tier-a">A</span>
+        <div style={{ marginBottom: 40 }}>
+          <div className="tier-section-divider">
+            <div className="tier-label-sm tier-a">A</div>
             <div>
-              <div style={{ fontWeight: 600, fontSize: 14 }}>Tier A — Full Bypass</div>
-              <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{tiers.a.length} server{tiers.a.length !== 1 ? "s" : ""} — all domains reachable</div>
+              <div style={{ fontWeight: 700, fontSize: 15 }}>Tier A — Full Bypass</div>
+              <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                {tiers.a.length} server{tiers.a.length !== 1 ? "s" : ""} — all domains reachable
+              </div>
             </div>
           </div>
           {tiers.a.map((info, i) => (
@@ -906,12 +1308,14 @@ function ResultsScreen({ results, elapsed, onRerun, onReset, isAdmin, onApplyDNS
 
       {/* Tier B */}
       {tiers.b.length > 0 && (
-        <div style={{ marginBottom: 28 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-            <span className="tier-label tier-b">B</span>
+        <div style={{ marginBottom: 40 }}>
+          <div className="tier-section-divider">
+            <div className="tier-label-sm tier-b">B</div>
             <div>
-              <div style={{ fontWeight: 600, fontSize: 14 }}>Tier B — Partial Bypass</div>
-              <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{tiers.b.length} server{tiers.b.length !== 1 ? "s" : ""} — some domains reachable</div>
+              <div style={{ fontWeight: 700, fontSize: 15 }}>Tier B — Partial Bypass</div>
+              <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                {tiers.b.length} server{tiers.b.length !== 1 ? "s" : ""} — some domains reachable
+              </div>
             </div>
           </div>
           {tiers.b.map(info => (
@@ -923,12 +1327,14 @@ function ResultsScreen({ results, elapsed, onRerun, onReset, isAdmin, onApplyDNS
 
       {/* Tier F */}
       {tiers.f.length > 0 && (
-        <div style={{ marginBottom: 28 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-            <span className="tier-label tier-f">F</span>
+        <div style={{ marginBottom: 40 }}>
+          <div className="tier-section-divider">
+            <div className="tier-label-sm tier-f">F</div>
             <div>
-              <div style={{ fontWeight: 600, fontSize: 14 }}>Tier F — No Bypass</div>
-              <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{tiers.f.length} server{tiers.f.length !== 1 ? "s" : ""} — blocked or dead</div>
+              <div style={{ fontWeight: 700, fontSize: 15 }}>Tier F — No Bypass</div>
+              <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                {tiers.f.length} server{tiers.f.length !== 1 ? "s" : ""} — blocked or dead
+              </div>
             </div>
           </div>
           {tiers.f.map(info => (
@@ -944,21 +1350,28 @@ function ResultsScreen({ results, elapsed, onRerun, onReset, isAdmin, onApplyDNS
 // ── Error Banner ────────────────────────────────────────────────────────────
 function ErrorBanner({ message, onDismiss }) {
   return (
-    <div style={{ position: "fixed", top: 16, left: "50%", transform: "translateX(-50%)",
-      zIndex: 9999, maxWidth: 520, width: "calc(100% - 32px)" }}>
-      <div style={{ background: "var(--bg-card)", border: "1px solid rgba(244,63,94,0.35)",
-        borderRadius: "var(--radius)", padding: "14px 18px", display: "flex", gap: 10, alignItems: "flex-start",
-        boxShadow: "0 8px 32px rgba(0,0,0,0.5)" }}>
-        <span style={{ color: "var(--rose)", fontSize: 16, flexShrink: 0 }}>⚠</span>
+    <div style={{ position: "fixed", top: 20, left: "50%", transform: "translateX(-50%)",
+      zIndex: 9999, maxWidth: 540, width: "calc(100% - 32px)" }}>
+      <div style={{
+        background: "rgba(13,13,22,0.96)",
+        backdropFilter: "blur(20px)",
+        border: "1px solid rgba(244,63,94,0.4)",
+        borderRadius: "var(--radius-lg)", padding: "16px 20px",
+        display: "flex", gap: 12, alignItems: "flex-start",
+        boxShadow: "0 16px 48px rgba(0,0,0,0.7), 0 0 0 1px rgba(244,63,94,0.1) inset" }}>
+        <span style={{ color: "var(--rose)", fontSize: 18, flexShrink: 0, marginTop: 1 }}>⚠</span>
         <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4 }}>Connection Error</div>
-          <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.6 }}>{message}</div>
-          <div style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 6 }}>
-            Make sure the backend is running: <span className="mono" style={{ color: "var(--text-muted)" }}>python backend/start.py</span>
+          <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 5 }}>Connection Error</div>
+          <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.65 }}>{message}</div>
+          <div style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 8 }}>
+            Make sure the backend is running: <span className="mono" style={{ color: "var(--text-secondary)" }}>python start.py</span>
           </div>
         </div>
         <button onClick={onDismiss} style={{ background: "none", border: "none",
-          color: "var(--text-muted)", cursor: "pointer", fontSize: 18, lineHeight: 1, flexShrink: 0 }}>×</button>
+          color: "var(--text-muted)", cursor: "pointer", fontSize: 20, lineHeight: 1,
+          flexShrink: 0, opacity: 0.7, transition: "opacity 0.15s" }}
+          onMouseEnter={e => e.target.style.opacity = "1"}
+          onMouseLeave={e => e.target.style.opacity = "0.7"}>×</button>
       </div>
     </div>
   );
@@ -1120,7 +1533,8 @@ function App() {
   return (
     <>
       <div className="nebula" />
-      <div className="grid-bg" />
+      <div className="dot-grid" />
+      <div className="scan-line" />
 
       {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
 
@@ -1152,8 +1566,8 @@ function App() {
       )}
 
       {/* Toast stack */}
-      <div style={{ position: "fixed", bottom: 24, right: 24, display: "flex", flexDirection: "column",
-        gap: 10, zIndex: 9999 }}>
+      <div style={{ position: "fixed", bottom: 28, right: 28, display: "flex",
+        flexDirection: "column", gap: 12, zIndex: 9999 }}>
         {toasts.map(t => (
           <Toast key={t.id} toast={t} onClose={() => removeToast(t.id)} />
         ))}
