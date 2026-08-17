@@ -637,7 +637,7 @@ function BenchmarkScreen({ progress }) {
 }
 
 // ── Results Screen ─────────────────────────────────────────────────────────
-function TierServerCard({ info, isAdmin, onApplyDNS, onFlushCache, applying }) {
+function TierServerCard({ info, isAdmin, onApplyDNS, onFlushCache, applying, isRecommended }) {
   const [expanded, setExpanded] = useState(true);
   const tierClass = info.tier === "A" ? "tier-card-a" : info.tier === "B" ? "tier-card-b" : "tier-card-f";
   const tierLabelClass = info.tier === "A" ? "tier-a" : info.tier === "B" ? "tier-b" : "tier-f";
@@ -659,7 +659,7 @@ function TierServerCard({ info, isAdmin, onApplyDNS, onFlushCache, applying }) {
         <div style={{ flex: 1 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
             <span style={{ fontWeight: 600, fontSize: 15 }}>{info.name}</span>
-            {info.tier === "A" && info === domains[0]?.[0] && (
+            {isRecommended && (
               <span style={{ fontSize: 10, background: "var(--emerald-dim)", color: "var(--emerald)",
                 border: "1px solid rgba(16,212,138,0.25)", borderRadius: 4, padding: "1px 6px",
                 fontWeight: 600, letterSpacing: "0.06em" }}>RECOMMENDED</span>
@@ -705,16 +705,29 @@ function TierServerCard({ info, isAdmin, onApplyDNS, onFlushCache, applying }) {
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           {(info.tier === "A" || info.tier === "B") && (
             <button
-              className={`btn btn-sm ${info.tier === "A" ? "btn-emerald" : "btn-ghost"}`}
-              disabled={!isAdmin || applying === info.name}
+              className={`btn btn-sm ${isAdmin ? (info.tier === "A" ? "btn-emerald" : "btn-ghost") : "btn-ghost"}`}
+              disabled={applying === info.name}
               onClick={() => onApplyDNS(info)}
-              title={!isAdmin ? "Backend must run as admin to apply DNS" : ""}>
-              {applying === info.name ? <Spinner size={12} /> :
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                  <polyline points="22 4 12 14.01 9 11.01"/>
-                </svg>}
-              Apply DNS
+              title={!isAdmin
+                ? "Not running as admin — click to see instructions"
+                : `Apply ${info.ip}${info.secondary_ip ? " + " + info.secondary_ip : ""} as system DNS`}>
+              {applying === info.name
+                ? <><Spinner size={12} /> Applying…</>
+                : !isAdmin
+                ? <>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                      <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                    Apply DNS
+                  </>
+                : <>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                      <polyline points="22 4 12 14.01 9 11.01"/>
+                    </svg>
+                    Apply DNS
+                  </>
+              }
             </button>
           )}
           <button className="btn btn-ghost btn-sm"
@@ -858,10 +871,17 @@ function ResultsScreen({ results, elapsed, onRerun, onReset, isAdmin, onApplyDNS
               · {best.bypass_count}/{best.total_count} domains · avg {Math.round(best.avg_dns_ms)}ms DNS
             </span>
           </div>
-          <button className="btn btn-emerald btn-sm" disabled={!isAdmin || applying === best.name}
+          <button
+            className={`btn btn-sm ${isAdmin ? "btn-emerald" : "btn-ghost"}`}
+            disabled={applying === best.name}
             onClick={() => onApplyDNS(best)}
-            title={!isAdmin ? "Backend must run as admin to apply DNS" : ""}>
-            {applying === best.name ? <><Spinner size={12} /> Applying…</> : "⚡ Apply Now"}
+            title={!isAdmin ? "Not running as admin — click to see instructions" : `Apply ${best.ip} as system DNS`}>
+            {applying === best.name
+              ? <><Spinner size={12} /> Applying…</>
+              : !isAdmin
+              ? "🔒 Apply Now"
+              : "⚡ Apply Now"
+            }
           </button>
         </div>
       )}
@@ -878,7 +898,8 @@ function ResultsScreen({ results, elapsed, onRerun, onReset, isAdmin, onApplyDNS
           </div>
           {tiers.a.map((info, i) => (
             <TierServerCard key={info.name} info={info} isAdmin={isAdmin}
-              onApplyDNS={onApplyDNS} onFlushCache={onFlushCache} applying={applying} />
+              onApplyDNS={onApplyDNS} onFlushCache={onFlushCache} applying={applying}
+              isRecommended={i === 0} />
           ))}
         </div>
       )}
@@ -1036,17 +1057,35 @@ function App() {
   }, []);
 
   const applyDNS = useCallback(async (info) => {
+    // Guard: if not admin, show a helpful error instead of silently doing nothing
+    if (!config?.is_admin) {
+      addToast(
+        "Admin privileges required. Restart the backend with: sudo python start.py  (Linux/macOS)  or  Run As Administrator  (Windows)",
+        "error"
+      );
+      return;
+    }
     setApplying(info.name);
     try {
+      const secondary = info.secondary_ip || null;
       const res = await fetch(`${API}/api/dns/apply`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ server_name: info.name, primary_ip: info.ip, secondary_ip: info.secondary_ip }),
+        body: JSON.stringify({
+          server_name: info.name,
+          primary_ip: info.ip,
+          secondary_ip: secondary,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Failed");
-      addToast(`DNS applied: ${info.name} (${data.applied_ips.join(", ")})`, "success");
-      if (config) setConfig(c => ({ ...c, is_admin: true }));
+      const ifaceInfo = data.interface ? ` on [${data.interface}]` : "";
+      addToast(`✓ DNS applied: ${info.name} (${data.applied_ips.join(", ")})${ifaceInfo} — ${data.message}`, "success");
+      // Refresh config to ensure is_admin and OS status are up-to-date
+      fetch(`${API}/api/config`)
+        .then(r => r.json())
+        .then(setConfig)
+        .catch(() => {});
     } catch (err) {
       addToast(err.message, "error");
     } finally {

@@ -249,16 +249,27 @@ async def probe_one(server: DNSServer, domain: str) -> ProbeResult:
 
 
 def compute_tier_info(results: list[ProbeResult], servers_config: list[dict]) -> list[dict]:
-    ip_lookup = {s["name"]: s["ip"] for s in servers_config}
+    # Use (name, ip) as the unique key to avoid merging two servers that share a name
+    ip_lookup     = {s["name"]: s["ip"]              for s in servers_config}
     secondary_lookup = {s["name"]: s.get("secondary_ip") for s in servers_config}
 
-    server_data: dict[str, dict] = {}
+    # Track insertion order so results are returned in benchmark order
+    server_data: dict[tuple[str, str], dict] = {}
+    key_meta: dict[tuple[str, str], dict] = {}
+
     for r in results:
         name = r.dns.server_name
-        if name not in server_data:
-            server_data[name] = {"bypass": 0, "total": 0, "dns_ms": 0.0,
-                                  "http_ms": 0.0, "http_count": 0, "per_domain": {}}
-        d = server_data[name]
+        ip   = r.dns.server_ip
+        key  = (name, ip)
+        if key not in server_data:
+            server_data[key] = {"bypass": 0, "total": 0, "dns_ms": 0.0,
+                                 "http_ms": 0.0, "http_count": 0, "per_domain": {}}
+            key_meta[key] = {
+                "name": name,
+                "ip": ip,
+                "secondary_ip": secondary_lookup.get(name),
+            }
+        d = server_data[key]
         d["total"] += 1
         d["dns_ms"] += r.dns.latency_ms
         if r.http:
@@ -275,23 +286,24 @@ def compute_tier_info(results: list[ProbeResult], servers_config: list[dict]) ->
         }
 
     infos = []
-    for name, d in server_data.items():
-        avg_dns = d["dns_ms"] / d["total"] if d["total"] else 0
-        avg_http = d["http_ms"] / d["http_count"] if d["http_count"] else 0
-        bypass_pct = (d["bypass"] / d["total"] * 100) if d["total"] else 0
+    for key, d in server_data.items():
+        meta = key_meta[key]
+        avg_dns    = d["dns_ms"] / d["total"]       if d["total"]      else 0
+        avg_http   = d["http_ms"] / d["http_count"] if d["http_count"] else 0
+        bypass_pct = (d["bypass"] / d["total"] * 100) if d["total"]    else 0
         tier = "A" if d["bypass"] == d["total"] and d["bypass"] > 0 else (
                "F" if d["bypass"] == 0 else "B")
         infos.append({
-            "name": name,
-            "ip": ip_lookup.get(name, "?"),
-            "secondary_ip": secondary_lookup.get(name),
+            "name":         meta["name"],
+            "ip":           meta["ip"],
+            "secondary_ip": meta["secondary_ip"],
             "bypass_count": d["bypass"],
-            "total_count": d["total"],
-            "bypass_pct": round(bypass_pct, 0),
-            "avg_dns_ms": round(avg_dns, 1),
-            "avg_http_ms": round(avg_http, 1),
-            "tier": tier,
-            "per_domain": d["per_domain"],
+            "total_count":  d["total"],
+            "bypass_pct":   round(bypass_pct, 0),
+            "avg_dns_ms":   round(avg_dns, 1),
+            "avg_http_ms":  round(avg_http, 1),
+            "tier":         tier,
+            "per_domain":   d["per_domain"],
         })
     return infos
 
@@ -308,14 +320,48 @@ def is_admin() -> bool:
 
 
 def get_active_windows_interface() -> Optional[str]:
+    """
+    Returns the best active network interface name for DNS assignment.
+    Priority: Wi-Fi > Ethernet > any other Up adapter > any non-Loopback adapter.
+    Also skips virtual/hypervisor adapters (Hyper-V, WSL, VPN, TAP, vEthernet).
+    """
+    VIRTUAL_KEYWORDS = ("loopback", "hyper-v", "wsl", "vethernet", "tap", "vpn",
+                        "virtual", "pseudo", "teredo", "isatap", "6to4")
+
+    def is_physical(name: str, desc: str) -> bool:
+        combined = (name + " " + desc).lower()
+        return not any(k in combined for k in VIRTUAL_KEYWORDS)
+
     try:
         result = subprocess.run(
-            ["powershell", "-Command",
-             "Get-NetAdapter | Where-Object { $_.Status -eq 'Up' } | Select-Object -First 1 -ExpandProperty Name"],
+            ["powershell", "-NoProfile", "-Command",
+             "Get-NetAdapter | Select-Object Name, InterfaceDescription, Status | ConvertTo-Json -Compress"],
             capture_output=True, text=True, timeout=10,
             creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0,
         )
-        return result.stdout.strip() or None
+        if result.returncode != 0 or not result.stdout.strip():
+            return None
+
+        raw = result.stdout.strip()
+        adapters = json.loads(raw)
+        # ConvertTo-Json returns a dict (not list) when there's only one adapter
+        if isinstance(adapters, dict):
+            adapters = [adapters]
+
+        up_adapters = [a for a in adapters if (a.get("Status") or "").lower() == "up"]
+        physical = [a for a in up_adapters
+                    if is_physical(a.get("Name", ""), a.get("InterfaceDescription", ""))]
+        candidates = physical if physical else up_adapters
+
+        # Prefer Wi-Fi, then Ethernet, then whatever's first
+        for keyword in ("wi-fi", "wifi", "wireless", "wlan", "ethernet", "lan"):
+            for a in candidates:
+                combined = (a.get("Name", "") + " " + a.get("InterfaceDescription", "")).lower()
+                if keyword in combined:
+                    return a["Name"]
+
+        return candidates[0]["Name"] if candidates else None
+
     except Exception:
         return None
 
@@ -326,20 +372,77 @@ def set_system_dns(dns_ips: list[str], server_name: str) -> tuple[bool, str]:
         if system == "Windows":
             interface = get_active_windows_interface()
             if not interface:
-                return False, "Could not detect active network interface."
-            ips_ps = "'" + "', '".join(dns_ips) + "'"
-            cmd = ["powershell", "-Command",
-                   f"Set-DnsClientServerAddress -InterfaceAlias '{interface}' -ServerAddresses ({ips_ps})"]
+                return False, (
+                    "Could not detect active network interface. "
+                    "Make sure a network adapter is enabled and try again."
+                )
+            # Build PowerShell command as a single script block to handle
+            # interface names that contain spaces or special characters safely.
+            ips_array = ", ".join(f'"{ip}"' for ip in dns_ips)
+            ps_script = (
+                f'$iface = "{interface}"; '
+                f'Set-DnsClientServerAddress -InterfaceAlias $iface '
+                f'-ServerAddresses @({ips_array}); '
+                f'ipconfig /flushdns | Out-Null'
+            )
+            cmd = ["powershell", "-NoProfile", "-NonInteractive",
+                   "-ExecutionPolicy", "Bypass", "-Command", ps_script]
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=15,
                                     creationflags=subprocess.CREATE_NO_WINDOW)
             if result.returncode != 0:
-                return False, result.stderr.strip()
-            return True, f"DNS set on interface '{interface}'"
+                err_msg = (result.stderr.strip() or result.stdout.strip() or
+                           f"PowerShell exited with code {result.returncode}")
+                return False, err_msg
+            return True, f"DNS set on interface '{interface}', cache flushed."
 
         elif system == "Linux":
-            lines = [f"nameserver {ip}" for ip in dns_ips]
-            with open("/etc/resolv.conf", "w") as f:
-                f.write("\n".join(lines) + "\n")
+            # Try systemd-resolved first (modern distros: Ubuntu 18+, Fedora, etc.)
+            try:
+                # Get the default route interface
+                iface_result = subprocess.run(
+                    ["ip", "route", "show", "default"],
+                    capture_output=True, text=True, timeout=5
+                )
+                iface = None
+                for token in iface_result.stdout.split():
+                    if token not in ("default", "via", "dev", "proto", "metric", "src"):
+                        if "." not in token and ":" not in token and token.isidentifier():
+                            iface = token
+                            break
+
+                # Check if resolvectl is available
+                check = subprocess.run(["which", "resolvectl"],
+                                       capture_output=True, timeout=5)
+                if check.returncode == 0 and iface:
+                    # Apply DNS via resolvectl (persists across reboots with systemd)
+                    dns_arg = " ".join(dns_ips)
+                    subprocess.run(
+                        ["resolvectl", "dns", iface] + dns_ips,
+                        capture_output=True, timeout=10
+                    )
+                    subprocess.run(["resolvectl", "flush-caches"],
+                                   capture_output=True, timeout=10)
+                    return True, f"DNS set via resolvectl on '{iface}', cache flushed."
+            except Exception:
+                pass
+
+            # Fallback: write /etc/resolv.conf directly
+            # (works on systems without systemd-resolved)
+            import shutil, tempfile, os as _os
+            lines = ["# Generated by DNS-Benchmarker"] + [f"nameserver {ip}" for ip in dns_ips]
+            content = "\n".join(lines) + "\n"
+            # Write atomically to avoid partial-write issues
+            fd, tmp_path = tempfile.mkstemp(dir="/etc", prefix=".resolv.conf.tmp")
+            try:
+                with _os.fdopen(fd, "w") as f:
+                    f.write(content)
+                shutil.move(tmp_path, "/etc/resolv.conf")
+            except Exception:
+                try:
+                    _os.unlink(tmp_path)
+                except Exception:
+                    pass
+                raise
             return True, "Written to /etc/resolv.conf"
 
         elif system == "Darwin":
@@ -367,27 +470,49 @@ def reset_system_dns() -> tuple[bool, str]:
         if system == "Windows":
             interface = get_active_windows_interface()
             if not interface:
-                return False, "Could not detect active network interface."
-            subprocess.run(
+                return False, (
+                    "Could not detect active network interface. "
+                    "Make sure a network adapter is enabled and try again."
+                )
+            result = subprocess.run(
                 ["powershell", "-Command",
                  f"Set-DnsClientServerAddress -InterfaceAlias '{interface}' -ResetServerAddresses"],
                 capture_output=True, text=True, timeout=15,
                 creationflags=subprocess.CREATE_NO_WINDOW,
             )
+            if result.returncode != 0:
+                err_msg = (result.stderr.strip() or result.stdout.strip() or
+                           f"PowerShell exited with code {result.returncode}")
+                return False, err_msg
             subprocess.run(["ipconfig", "/flushdns"], capture_output=True, timeout=10,
                            creationflags=subprocess.CREATE_NO_WINDOW)
             return True, f"DNS reverted to DHCP on '{interface}', cache flushed."
 
         elif system == "Linux":
             try:
-                subprocess.run(["resolvectl", "revert"], capture_output=True, timeout=10)
+                iface_result = subprocess.run(
+                    ["ip", "route", "show", "default"],
+                    capture_output=True, text=True, timeout=5
+                )
+                iface = None
+                for token in iface_result.stdout.split():
+                    if token not in ("default", "via", "dev", "proto", "metric", "src"):
+                        if "." not in token and ":" not in token and token.isidentifier():
+                            iface = token
+                            break
+                if iface:
+                    subprocess.run(["resolvectl", "revert", iface],
+                                   capture_output=True, timeout=10)
+                else:
+                    subprocess.run(["resolvectl", "revert"],
+                                   capture_output=True, timeout=10)
             except Exception:
                 pass
             try:
                 subprocess.run(["resolvectl", "flush-caches"], capture_output=True, timeout=10)
             except Exception:
                 pass
-            return True, "DNS reverted (resolvectl) and cache flushed."
+            return True, "DNS reverted to DHCP (resolvectl) and cache flushed."
 
         elif system == "Darwin":
             result = subprocess.run(["networksetup", "-listallnetworkservices"],
@@ -530,10 +655,23 @@ async def apply_dns(request: ApplyDNSRequest):
     dns_ips = [request.primary_ip]
     if request.secondary_ip:
         dns_ips.append(request.secondary_ip)
+    # For Windows: expose which interface was selected for easier debugging
+    debug_iface = None
+    if platform.system() == "Windows":
+        debug_iface = get_active_windows_interface()
+        if not debug_iface:
+            raise HTTPException(status_code=500,
+                                detail="Could not detect active network interface. "
+                                       "Run: Get-NetAdapter in PowerShell to check adapter names.")
     success, message = set_system_dns(dns_ips, request.server_name)
     if not success:
         raise HTTPException(status_code=500, detail=message)
-    return {"success": True, "message": message, "applied_ips": dns_ips}
+    return {
+        "success": True,
+        "message": message,
+        "applied_ips": dns_ips,
+        "interface": debug_iface,
+    }
 
 
 @app.post("/api/dns/reset")
